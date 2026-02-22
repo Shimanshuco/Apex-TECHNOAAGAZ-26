@@ -8,6 +8,9 @@
       "use": "@vercel/node"
     }
   ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/dist/server.js" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -17,12 +20,6 @@
         { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" }
       ]
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "dist/server.js"
     }
   ]
 }
