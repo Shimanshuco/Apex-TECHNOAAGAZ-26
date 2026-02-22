@@ -10,11 +10,9 @@ import { eventSchema, eventRegistrationSchema } from "../utils/validators";
  */
 export const createEvent = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("[createEvent] REQ BODY:", JSON.stringify(req.body, null, 2));
     const parsed = eventSchema.safeParse(req.body);
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors;
-      console.log("[createEvent] ZOD ERRORS:", JSON.stringify(fieldErrors, null, 2));
       res.status(400).json({ success: false, message: "Validation failed", errors: fieldErrors });
       return;
     }

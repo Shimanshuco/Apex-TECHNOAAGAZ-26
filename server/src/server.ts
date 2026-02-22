@@ -19,3 +19,6 @@ const start = async () => {
 };
 
 start();
+
+// Export for Vercel serverless
+export default app;

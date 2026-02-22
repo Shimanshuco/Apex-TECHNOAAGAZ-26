@@ -8,8 +8,6 @@
     "types": ["node"],
     "moduleResolution": "node",
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,

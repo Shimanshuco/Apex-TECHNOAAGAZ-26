@@ -12,8 +12,39 @@ import paymentRoutes from "./routes/paymentRoutes";
 
 const app = express();
 
+/* ── CORS ────────────────────────────────────────────── */
+const allowedOrigins = [
+  ENV.CLIENT_URL,
+  "http://localhost:5173",
+  "http://localhost:4173",  // vite preview
+].filter(Boolean);
+
+// Handle preflight (OPTIONS) explicitly — must be BEFORE all routes
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(null, false);
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
 /* ── Global middleware ──────────────────────────────── */
-app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
 app.use(express.json({ limit: "5mb" })); // QR codes can be large base64
 
 /* ── Health check ───────────────────────────────────── */

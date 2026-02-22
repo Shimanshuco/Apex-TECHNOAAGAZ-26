@@ -12,14 +12,14 @@ export const registerSchema = z
     email:           z.string().email("Invalid email"),
     phone:           z.string().min(10, "Contact must be at least 10 digits"),
     university:      z.enum(["apex_university", "other"], {
-      required_error: "Select a university option",
+      message: "Select a university option",
     }),
     collegeName:     z.string().optional(),    // required only when university = "other"
     gender:          z.enum(["male", "female", "other"], {
-      required_error: "Gender is required",
+      message: "Gender is required",
     }),
     bloodGroup:      z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], {
-      required_error: "Blood group is required",
+      message: "Blood group is required",
     }),
     address:         z.string().min(5, "Address must be at least 5 characters"),
     password:        z.string().min(6, "Password must be at least 6 characters"),
@@ -48,10 +48,10 @@ export const volunteerSignupSchema = z
     email:           z.string().email("Invalid email"),
     phone:           z.string().min(10, "Contact must be at least 10 digits"),
     gender:          z.enum(["male", "female", "other"], {
-      required_error: "Gender is required",
+      message: "Gender is required",
     }),
     bloodGroup:      z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], {
-      required_error: "Blood group is required",
+      message: "Blood group is required",
     }),
     password:        z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Confirm your password"),
@@ -129,12 +129,12 @@ const coordinatorSchema = z.object({
 export const eventSchema = z.object({
   title:                z.string().min(2, "Title is required"),
   category:             z.enum(["cultural", "literary", "trending_event", "technical"], {
-    required_error: "Category is required",
+    message: "Category is required",
   }),
   cost:                 z.coerce.number().min(0).default(0),
   venue:                z.string().min(2, "Venue is required"),
   participationType:    z.enum(["solo", "team"], {
-    required_error: "Select Solo or Team",
+    message: "Select Solo or Team",
   }),
   minTeamSize:          z.coerce.number().min(1).default(2),
   maxTeamSize:          z.coerce.number().min(1).default(5),
