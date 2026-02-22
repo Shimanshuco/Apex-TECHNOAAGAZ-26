@@ -44,10 +44,10 @@ const HomePage: React.FC = () => {
   ];
 
   const socialLinks = [
-    { icon: LinkedInIcon, href: 'https://linkedin.com', label: 'LinkedIn', color: 'blue' as const },
-    { icon: YoutubeIcon, href: 'https://youtube.com', label: 'YouTube', color: 'red' as const },
-    { icon: InstaIcon, href: 'https://instagram.com', label: 'Instagram', color: 'pink' as const },
-    { icon: WebIcon, href: 'https://apexuniversity.edu.in', label: 'Website', color: 'cyan' as const },
+    { icon: LinkedInIcon, href: 'https://www.linkedin.com/school/apex-university/', label: 'LinkedIn', color: 'blue' as const },
+    { icon: YoutubeIcon, href: 'https://youtube.com/@sww-apexuniversity?si=AcBMJ236lRkgAksJ', label: 'YouTube', color: 'red' as const },
+    { icon: InstaIcon, href: 'https://www.instagram.com/apex_university/', label: 'Instagram', color: 'pink' as const },
+    { icon: WebIcon, href: 'https://www.apexuniversity.co.in/', label: 'Website', color: 'cyan' as const },
   ];
 
   const handleNavChange = (id: string) => {
@@ -60,14 +60,11 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-950">
-      {/* Background Image - Fixed (scales up slightly on mobile for immersion) */}
+      {/* Background Image — fixed on desktop, scroll-locked on mobile */}
       <div
-        className="fixed inset-0 z-0 scale-110 md:scale-100"
+        className="fixed inset-0 z-0 bg-center bg-no-repeat bg-cover will-change-transform"
         style={{
           backgroundImage: 'url(/Background.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
         }}
       />
 

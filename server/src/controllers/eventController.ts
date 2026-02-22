@@ -160,13 +160,40 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const amount = event.cost || 0;
+    const eventCost = event.cost || 0;
 
-    // For paid events, registration is created via the payment flow (/api/payments/create-order)
+    // Dynamic pricing: Apex University = ₹149, Other = ₹249
+    const amount = eventCost > 0
+      ? (user.university === "apex_university" ? 149 : 249)
+      : 0;
+
+    // For paid events, require a payment screenshot
     if (amount > 0) {
-      res.status(400).json({
-        success: false,
-        message: "This is a paid event. Please use the payment flow to register.",
+      const { paymentScreenshot } = req.body || {};
+      if (!paymentScreenshot) {
+        res.status(400).json({
+          success: false,
+          message: "Payment screenshot is required. Please scan the QR, pay, and upload a screenshot.",
+        });
+        return;
+      }
+
+      const registration = await Registration.create({
+        event: event._id,
+        user: req.userId,
+        teamMembers: [],
+        paymentStatus: "pending",
+        paymentScreenshot,
+        amount,
+      });
+
+      // NOTE: Do NOT add to user.registeredEvents yet.
+      // Admin must verify the payment screenshot first.
+
+      res.json({
+        success: true,
+        message: `Registered for "${event.title}" — Payment screenshot under verification`,
+        data: registration,
       });
       return;
     }

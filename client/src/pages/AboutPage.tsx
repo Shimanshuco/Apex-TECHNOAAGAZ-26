@@ -69,18 +69,18 @@ const AboutPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
         <Card variant="neon" glowColor="gold" className="text-center">
           <CalendarDays size={28} className="text-gold mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-white">10 — 13 March</h3>
-          <p className="text-gray-400 text-sm mt-1">4 Days of Innovation</p>
+          <h3 className="text-lg font-bold text-white">10 — 12 March</h3>
+          <p className="text-gray-400 text-sm mt-1">3 Days of Innovation</p>
         </Card>
         <Card variant="neon" glowColor="gold" className="text-center">
           <MapPin size={28} className="text-gold mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-white">Apex University</h3>
+          <h3 className="text-lg font-bold text-white">Apex Institute of Engineering and Technology</h3>
           <p className="text-gray-400 text-sm mt-1">Jaipur, Rajasthan</p>
         </Card>
         <Card variant="neon" glowColor="navy" className="text-center">
           <Users size={28} className="text-navy-light mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-white">5000+ Participants</h3>
-          <p className="text-gray-400 text-sm mt-1">From across India</p>
+          <h3 className="text-lg font-bold text-white">Theme</h3>
+          <p className="text-gray-400 text-sm mt-1">Your Stage Your Story</p>
         </Card>
       </div>
 
@@ -104,27 +104,8 @@ const AboutPage: React.FC = () => {
 
       {/* Description */}
       <Card variant="glass" className="max-w-3xl mx-auto">
-        <h2 className="text-xl font-bold text-white mb-4">Our Vision</h2>
-        <div className="space-y-4 text-gray-300 leading-relaxed">
-          <p>
-            TECHNOAAGAZ is more than just a tech fest — it&#39;s a platform
-            where innovation meets inspiration. Organized by Apex University,
-            Jaipur, this annual celebration of technology and culture has grown
-            to become one of Rajasthan&#39;s most anticipated collegiate events.
-          </p>
-          <p>
-            From high-intensity hackathons and coding competitions to
-            mesmerizing cultural performances and artist nights, TECHNOAAGAZ
-            offers something for every student. Industry workshops, guest
-            lectures from leading tech professionals, and hands-on labs provide
-            invaluable learning experiences beyond the classroom.
-          </p>
-          <p>
-            Join us for four unforgettable days of creativity, competition, and
-            community. Whether you&#39;re a coder, a musician, an artist, or an
-            innovator — TECHNOAAGAZ 2026 has a stage for you.
-          </p>
-        </div>
+        <h2 className="text-xl font-bold text-white mb-4">Techno</h2>
+        
       </Card>
     </>
   );

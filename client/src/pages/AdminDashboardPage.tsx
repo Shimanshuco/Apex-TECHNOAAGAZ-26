@@ -17,13 +17,7 @@ import {
   Trash2,
   Edit,
   ChevronDown,
-  ChevronUp,
-  Eye,
   IndianRupee,
-  UserCircle,
-  Mail,
-  Phone,
-  GraduationCap,
   User,
   Music,
   Image,
@@ -33,6 +27,13 @@ import {
   Tag,
   Loader2,
   AlertCircle,
+  CreditCard,
+  Eye,
+  ThumbsUp,
+  ThumbsDown,
+  Phone,
+  UserCheck,
+  UsersRound,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -69,25 +70,6 @@ interface EventItem {
   venue: string;
 }
 
-interface RegistrationItem {
-  _id: string;
-  user: {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-    university?: string;
-    collegeName?: string;
-    role: string;
-  };
-  teamName?: string;
-  teamMembers: { name: string; email: string; phone: string; university?: string; collegeName?: string }[];
-  paymentStatus: string;
-  paymentId?: string;
-  amount: number;
-  createdAt: string;
-}
-
 interface ArtistItem {
   _id: string;
   name: string;
@@ -95,6 +77,30 @@ interface ArtistItem {
   photo: string;
   createdAt: string;
 }
+
+interface PendingPayment {
+  _id: string;
+  user: { _id: string; name: string; email: string; phone?: string; university?: string; collegeName?: string };
+  event: { _id: string; title: string; category: string; cost: number; date: string };
+  amount: number;
+  paymentStatus: string;
+  paymentScreenshot?: string;
+  createdAt: string;
+}
+
+interface RegistrationItem {
+  _id: string;
+  user: { _id: string; name: string; email: string; phone?: string; university?: string; collegeName?: string; role?: string; gender?: string };
+  event: { _id: string; title: string; category: string; date: string };
+  teamName?: string;
+  teamMembers: { name: string; email: string; phone: string }[];
+  paymentStatus: "pending" | "completed" | "failed";
+  paymentScreenshot?: string;
+  amount: number;
+  createdAt: string;
+}
+
+type EventRegStats = Record<string, { total: number; completed: number; pending: number; failed: number }>;
 
 const ROLE_OPTIONS = [
   { value: "", label: "All Roles" },
@@ -261,12 +267,18 @@ const AdminDashboardPage: React.FC = () => {
   const [artists, setArtists] = useState<ArtistItem[]>([]);
   const [roleFilter, setRoleFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments">("users");
 
-  // Events
-  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
-  const [registrations, setRegistrations] = useState<Record<string, RegistrationItem[]>>({});
-  const [regLoading, setRegLoading] = useState<string | null>(null);
+  // Payments
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [previewScreenshot, setPreviewScreenshot] = useState<string | null>(null);
+  const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
+
+  // Event Registrations
+  const [eventRegStats, setEventRegStats] = useState<EventRegStats>({});
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [eventRegistrations, setEventRegistrations] = useState<Record<string, RegistrationItem[]>>({});
+  const [loadingRegistrations, setLoadingRegistrations] = useState<string | null>(null);
 
   // Artists
   const [artistModal, setArtistModal] = useState<{ open: boolean; artist: ArtistItem | null }>({ open: false, artist: null });
@@ -275,16 +287,20 @@ const AdminDashboardPage: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, eventsRes, artistsRes] = await Promise.all([
+      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes] = await Promise.all([
         api<{ data: Stats }>("/qr/stats", { token }),
         api<{ data: UserItem[] }>(roleFilter ? `/admin/users/${roleFilter}` : "/admin/users", { token }),
         api<{ data: EventItem[] }>("/events"),
         api<{ data: ArtistItem[] }>("/artists"),
+        api<{ data: PendingPayment[] }>("/admin/registrations/pending", { token }),
+        api<{ data: EventRegStats }>("/admin/events/registration-stats", { token }),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setEvents(eventsRes.data);
       setArtists(artistsRes.data);
+      setPendingPayments(paymentsRes.data);
+      setEventRegStats(regStatsRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -303,16 +319,49 @@ const AdminDashboardPage: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
-  const toggleEventRegistrations = async (eventId: string) => {
-    if (expandedEvent === eventId) { setExpandedEvent(null); return; }
-    setExpandedEvent(eventId);
-    if (!registrations[eventId]) {
-      setRegLoading(eventId);
-      try {
-        const res = await api<{ data: RegistrationItem[] }>(`/events/${eventId}/registrations`, { token });
-        setRegistrations((p) => ({ ...p, [eventId]: res.data }));
-      } catch { setRegistrations((p) => ({ ...p, [eventId]: [] })); }
-      finally { setRegLoading(null); }
+  const fetchEventRegistrations = async (eventId: string) => {
+    if (expandedEventId === eventId) {
+      setExpandedEventId(null);
+      return;
+    }
+    setExpandedEventId(eventId);
+    if (eventRegistrations[eventId]) return;
+    setLoadingRegistrations(eventId);
+    try {
+      const res = await api<{ data: RegistrationItem[] }>(`/events/${eventId}/registrations`, { token });
+      setEventRegistrations((prev) => ({ ...prev, [eventId]: res.data }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingRegistrations(null);
+    }
+  };
+
+
+
+  /* ── Payment helpers ── */
+  const handleApprovePayment = async (id: string) => {
+    setProcessingPaymentId(id);
+    try {
+      await api(`/admin/registrations/${id}/approve`, { method: "PATCH", token });
+      setPendingPayments((p) => p.filter((pp) => pp._id !== id));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProcessingPaymentId(null);
+    }
+  };
+
+  const handleRejectPayment = async (id: string) => {
+    if (!confirm("Reject this payment? The student will need to re-register.")) return;
+    setProcessingPaymentId(id);
+    try {
+      await api(`/admin/registrations/${id}/reject`, { method: "PATCH", token });
+      setPendingPayments((p) => p.filter((pp) => pp._id !== id));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProcessingPaymentId(null);
     }
   };
 
@@ -345,6 +394,7 @@ const AdminDashboardPage: React.FC = () => {
   const tabs = [
     { key: "users" as const, icon: Users, label: "Users", count: users.length },
     { key: "events" as const, icon: CalendarDays, label: "Events", count: events.length },
+    { key: "payments" as const, icon: CreditCard, label: "Payments", count: pendingPayments.length },
     { key: "artists" as const, icon: Music, label: "Artists", count: artists.length },
   ];
 
@@ -496,16 +546,13 @@ const AdminDashboardPage: React.FC = () => {
           )}
 
           {events.map((evt) => {
-            const isExpanded = expandedEvent === evt._id;
-            const regs = registrations[evt._id];
-            const isRegLoading = regLoading === evt._id;
             const catClass = CATEGORY_COLORS[evt.category] || CATEGORY_COLORS.technical;
 
             return (
               <Card
                 key={evt._id}
                 variant="glass"
-                className={`transition-all duration-300 hover:border-white/15 ${isExpanded ? "ring-1 ring-gold/25" : ""}`}
+                className="transition-all duration-300 hover:border-white/15"
               >
                 {/* ── Event Header ── */}
                 <div className="flex gap-4">
@@ -551,17 +598,6 @@ const AdminDashboardPage: React.FC = () => {
                       {/* Action buttons */}
                       <div className="flex items-center gap-1 shrink-0">
                         <button
-                          onClick={() => toggleEventRegistrations(evt._id)}
-                          title="View registrations"
-                          className={`p-2 rounded-lg border transition-all duration-200 ${
-                            isExpanded
-                              ? "bg-gold/15 border-gold/30 text-gold shadow-sm shadow-gold/10"
-                              : "border-white/10 text-gray-500 hover:text-gold hover:bg-gold/10 hover:border-gold/20"
-                          }`}
-                        >
-                          {isExpanded ? <ChevronUp size={15} /> : <Eye size={15} />}
-                        </button>
-                        <button
                           onClick={() => navigate(`/admin/events/edit/${evt._id}`)}
                           title="Edit event"
                           className="p-2 rounded-lg border border-white/10 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/20 transition-all duration-200"
@@ -588,129 +624,316 @@ const AdminDashboardPage: React.FC = () => {
                         <MapPin size={12} className="text-gold/50" />
                         {evt.venue}
                       </span>
+                      {/* Registration count badge */}
+                      {eventRegStats[evt._id] && (
+                        <span className="flex items-center gap-1.5">
+                          <UserCheck size={12} className="text-gold/50" />
+                          <span className="text-white font-medium">{eventRegStats[evt._id].total}</span> registered
+                          {eventRegStats[evt._id].pending > 0 && (
+                            <span className="text-yellow-400">({eventRegStats[evt._id].pending} pending)</span>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* ── Expanded Registrations ── */}
-                {isExpanded && (
-                  <div className="border-t border-white/5 pt-5 mt-5 space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
-                      <Users size={14} className="text-gold" />
-                      Registrations
-                      {regs && (
-                        <span className="px-2 py-0.5 rounded-full bg-gold/10 text-[10px] text-gold font-semibold">
-                          {regs.length}
-                        </span>
-                      )}
-                    </h4>
+                {/* ── View Registrations Toggle ── */}
+                <div className="mt-4 pt-3 border-t border-white/5">
+                  <button
+                    onClick={() => fetchEventRegistrations(evt._id)}
+                    className="flex items-center gap-2 text-sm font-medium text-gold/80 hover:text-gold transition-colors"
+                  >
+                    <Users size={14} />
+                    {expandedEventId === evt._id ? "Hide" : "View"} Registrations
+                    {eventRegStats[evt._id] && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gold/10 border border-gold/20 text-gold">
+                        {eventRegStats[evt._id].total}
+                      </span>
+                    )}
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${expandedEventId === evt._id ? "rotate-180" : ""}`} />
+                  </button>
+                </div>
 
-                    {isRegLoading || !regs ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 size={20} className="text-gold animate-spin" />
+                {/* ── Expanded Registrations Panel ── */}
+                {expandedEventId === evt._id && (
+                  <div className="mt-4 space-y-4">
+                    {loadingRegistrations === evt._id ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 size={22} className="text-gold animate-spin" />
+                        <span className="ml-2 text-sm text-gray-500">Loading registrations…</span>
                       </div>
-                    ) : regs.length === 0 ? (
-                      <div className="text-center py-8 text-gray-600 text-sm">No registrations yet</div>
                     ) : (
-                      <div className="space-y-2">
-                        {regs.map((reg) => (
-                          <div key={reg._id} className="rounded-xl bg-gray-900/60 border border-white/5 overflow-hidden">
-                            <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                              {/* Avatar */}
-                              <div className="w-10 h-10 rounded-full bg-linear-to-br from-navy/40 to-gold/20 border border-white/10 flex items-center justify-center shrink-0">
-                                <UserCircle size={20} className="text-gray-400" />
-                              </div>
+                      (() => {
+                        const regs = eventRegistrations[evt._id] || [];
+                        if (regs.length === 0) {
+                          return (
+                            <div className="text-center py-8">
+                              <Users size={28} className="mx-auto text-gray-700 mb-2" />
+                              <p className="text-sm text-gray-600">No registrations yet</p>
+                            </div>
+                          );
+                        }
 
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium text-sm">{reg.user?.name || "Unknown"}</p>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                                  <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                                    <Mail size={10} /> {reg.user?.email}
-                                  </span>
-                                  {reg.user?.phone && (
-                                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                                      <Phone size={10} /> {reg.user.phone}
-                                    </span>
-                                  )}
-                                  {reg.user?.university && (
-                                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                                      <GraduationCap size={10} /> {getUserUniversity(reg.user)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                        // Separate team registrations (have teamName) from solo/individual
+                        const teamRegs = regs.filter((r) => r.teamName);
 
-                              {/* Payment badge */}
-                              <div className="flex items-center gap-2 shrink-0">
-                                {reg.amount > 0 && (
-                                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium ${
-                                    reg.paymentStatus === "completed"
-                                      ? "bg-green-500/10 border border-green-500/20 text-green-400"
-                                      : "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
-                                  }`}>
-                                    <IndianRupee size={10} />
-                                    {reg.amount}
-                                    <span className="ml-0.5 opacity-70">{reg.paymentStatus === "completed" ? "Paid" : "Pending"}</span>
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-gray-600">
-                                  {new Date(reg.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                                </span>
+                        // Collect all emails that are already in a team (leaders + members)
+                        const teamEmails = new Set<string>();
+                        for (const t of teamRegs) {
+                          teamEmails.add(t.user.email.toLowerCase());
+                          for (const m of t.teamMembers) {
+                            teamEmails.add(m.email.toLowerCase());
+                          }
+                        }
+
+                        // Only show people who are NOT part of any team
+                        const individualRegs = regs.filter(
+                          (r) => !r.teamName && !teamEmails.has(r.user.email.toLowerCase())
+                        );
+
+                        const paymentBadge = (status: string) => {
+                          if (status === "completed") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/10 border border-green-500/20 text-green-400"><CheckCircle size={9} /> Paid</span>;
+                          if (status === "pending") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"><Clock size={9} /> Pending</span>;
+                          return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 border border-red-500/20 text-red-400"><AlertCircle size={9} /> Rejected</span>;
+                        };
+
+                        return (
+                          <>
+                            {/* Registration Summary */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <div className="bg-white/5 rounded-lg p-3 text-center">
+                                <p className="text-lg font-bold text-white">{regs.length}</p>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total</p>
+                              </div>
+                              <div className="bg-green-500/5 rounded-lg p-3 text-center">
+                                <p className="text-lg font-bold text-green-400">{regs.filter((r) => r.paymentStatus === "completed").length}</p>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Paid</p>
+                              </div>
+                              <div className="bg-yellow-500/5 rounded-lg p-3 text-center">
+                                <p className="text-lg font-bold text-yellow-400">{regs.filter((r) => r.paymentStatus === "pending").length}</p>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Pending</p>
+                              </div>
+                              <div className="bg-blue-500/5 rounded-lg p-3 text-center">
+                                <p className="text-lg font-bold text-blue-400">{teamRegs.length}</p>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Teams</p>
                               </div>
                             </div>
 
-                            {/* Team members */}
-                            {reg.teamName && reg.teamMembers.length > 0 && (
-                              <div className="px-4 pb-4">
-                                <div className="rounded-lg bg-gold/5 border border-gold/10 p-3">
-                                  <p className="text-xs font-semibold text-gold mb-2 flex items-center gap-1.5">
-                                    <Users size={12} />
-                                    Team: {reg.teamName}
-                                    <span className="text-gold/50 ml-1">({reg.teamMembers.length} members)</span>
-                                  </p>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {reg.teamMembers.map((m, i) => (
-                                      <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/2 border border-white/5">
-                                        <div className="w-6 h-6 rounded-full bg-gold/10 flex items-center justify-center text-[10px] text-gold font-bold shrink-0 mt-0.5">
-                                          {i + 1}
-                                        </div>
-                                        <div className="min-w-0">
-                                          <p className="text-xs text-gray-300 font-medium truncate">{m.name}</p>
-                                          <div className="flex flex-col gap-0.5 text-[10px] text-gray-500 mt-0.5">
-                                            <span className="flex items-center gap-1 truncate">
-                                              <Mail size={9} /> {m.email}
-                                            </span>
-                                            {m.phone && (
-                                              <span className="flex items-center gap-1">
-                                                <Phone size={9} /> {m.phone}
-                                              </span>
-                                            )}
-                                            {m.university && (
-                                              <span className="flex items-center gap-1">
-                                                <GraduationCap size={9} />
-                                                {m.university === "apex_university"
-                                                  ? "Apex University"
-                                                  : m.collegeName || "Other"}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
+                            {/* Teams Section */}
+                            {teamRegs.length > 0 && (
+                              <div>
+                                <h4 className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
+                                  <UsersRound size={15} className="text-gold" />
+                                  Teams ({teamRegs.length})
+                                </h4>
+                                <div className="space-y-3">
+                                  {teamRegs.map((team) => (
+                                    <div key={team._id} className="bg-white/3 border border-white/5 rounded-xl p-4">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <h5 className="text-sm font-semibold text-gold">{team.teamName}</h5>
+                                        {paymentBadge(team.paymentStatus)}
                                       </div>
-                                    ))}
-                                  </div>
+                                      {/* Team Leader */}
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gold/15 text-gold border border-gold/20 uppercase tracking-wider">Leader</span>
+                                        <span className="text-sm text-white font-medium">{team.user.name}</span>
+                                        <span className="text-xs text-gray-500">{team.user.email}</span>
+                                        {team.user.phone && <span className="text-xs text-gray-500 flex items-center gap-0.5"><Phone size={9} />{team.user.phone}</span>}
+                                      </div>
+                                      {/* Team Members */}
+                                      {team.teamMembers.length > 0 && (
+                                        <div className="ml-4 space-y-1.5 mt-2 border-l-2 border-white/5 pl-3">
+                                          {team.teamMembers.map((m, mi) => (
+                                            <div key={mi} className="flex flex-wrap items-center gap-2 text-xs">
+                                              <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/5 text-gray-400 border border-white/5">Member</span>
+                                              <span className="text-gray-300 font-medium">{m.name}</span>
+                                              <span className="text-gray-500">{m.email}</span>
+                                              <span className="text-gray-500 flex items-center gap-0.5"><Phone size={9} />{m.phone}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-600">
+                                        <span>University: {getUserUniversity(team.user)}</span>
+                                        <span>Amount: ₹{team.amount}</span>
+                                        <span>Registered: {formatDate(team.createdAt)}</span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             )}
-                          </div>
-                        ))}
-                      </div>
+
+                            {/* Individual Registrations */}
+                            {individualRegs.length > 0 && (
+                              <div>
+                                <h4 className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
+                                  <User size={15} className="text-gold" />
+                                  {evt.participationType === "team" ? "Individual Registrations (No Team Yet)" : "Registrations"} ({individualRegs.length})
+                                </h4>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="text-left text-gray-500 border-b border-white/5">
+                                        <th className="pb-2 pr-3 font-medium">Name</th>
+                                        <th className="pb-2 pr-3 font-medium hidden sm:table-cell">Email</th>
+                                        <th className="pb-2 pr-3 font-medium hidden md:table-cell">Phone</th>
+                                        <th className="pb-2 pr-3 font-medium hidden lg:table-cell">University</th>
+                                        <th className="pb-2 pr-3 font-medium">Payment</th>
+                                        <th className="pb-2 font-medium hidden sm:table-cell">Date</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/3">
+                                      {individualRegs.map((reg) => (
+                                        <tr key={reg._id} className="text-gray-300 hover:bg-white/3 transition-colors">
+                                          <td className="py-2.5 pr-3 font-medium text-white">{reg.user.name}</td>
+                                          <td className="py-2.5 pr-3 hidden sm:table-cell text-gray-400 truncate max-w-36">{reg.user.email}</td>
+                                          <td className="py-2.5 pr-3 hidden md:table-cell text-gray-400">{reg.user.phone || "—"}</td>
+                                          <td className="py-2.5 pr-3 hidden lg:table-cell text-gray-400">{getUserUniversity(reg.user)}</td>
+                                          <td className="py-2.5 pr-3">{paymentBadge(reg.paymentStatus)}</td>
+                                          <td className="py-2.5 hidden sm:table-cell text-gray-500">{formatDate(reg.createdAt)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()
                     )}
                   </div>
                 )}
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════
+          PAYMENTS TAB
+         ═══════════════════════════════════════════════ */}
+      {activeTab === "payments" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-gray-400">
+              {pendingPayments.length} pending payment{pendingPayments.length !== 1 ? "s" : ""} to review
+            </p>
+            <Button variant="outline" size="sm" onClick={fetchAll}>
+              <span className="flex items-center gap-2"><Loader2 size={14} /> Refresh</span>
+            </Button>
+          </div>
+
+          {pendingPayments.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-gray-600">
+              <CheckCircle size={40} className="mb-3 opacity-30" />
+              <p>All payments verified!</p>
+              <p className="text-xs text-gray-700 mt-1">No pending screenshots to review</p>
+            </div>
+          ) : (
+            pendingPayments.map((p) => (
+              <Card key={p._id} variant="glass" className="hover:border-white/15 transition-all duration-300">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Screenshot preview thumbnail */}
+                  {p.paymentScreenshot && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewScreenshot(p.paymentScreenshot || null)}
+                      className="relative w-full sm:w-32 h-40 sm:h-32 rounded-xl overflow-hidden border border-white/10 shrink-0 group cursor-pointer"
+                    >
+                      <img
+                        src={p.paymentScreenshot}
+                        alt="Payment screenshot"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                        <Eye size={20} className="text-white" />
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-white">{p.user.name}</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">{p.user.email}</p>
+                        {p.user.phone && (
+                          <p className="text-xs text-gray-500">{p.user.phone}</p>
+                        )}
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gold/10 border border-gold/20 text-gold shrink-0">
+                        <IndianRupee size={11} />{p.amount}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1.5">
+                        <CalendarDays size={11} className="text-gold/50" />
+                        {p.event.title}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <User size={11} className="text-gold/50" />
+                        {getUserUniversity(p.user)}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={11} className="text-gray-600" />
+                        {formatDate(p.createdAt)}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleApprovePayment(p._id)}
+                        disabled={processingPaymentId === p._id}
+                      >
+                        <span className="flex items-center gap-2">
+                          {processingPaymentId === p._id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <ThumbsUp size={14} />
+                          )}
+                          Approve
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRejectPayment(p._id)}
+                        disabled={processingPaymentId === p._id}
+                      >
+                        <span className="flex items-center gap-2">
+                          <ThumbsDown size={14} />
+                          Reject
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Screenshot Preview Modal ── */}
+      {previewScreenshot && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4" onClick={() => setPreviewScreenshot(null)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="relative z-10 max-w-2xl max-h-[85vh] overflow-auto rounded-2xl border border-white/10 shadow-2xl">
+            <img src={previewScreenshot} alt="Payment screenshot" className="w-full h-auto" />
+            <button
+              onClick={() => setPreviewScreenshot(null)}
+              className="absolute top-3 right-3 p-2 rounded-full bg-black/70 hover:bg-red-500/80 transition-colors"
+            >
+              <X size={18} className="text-white" />
+            </button>
+          </div>
         </div>
       )}
 

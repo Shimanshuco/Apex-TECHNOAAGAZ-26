@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -8,7 +8,6 @@ import AnimatedBackground from "../components/AnimatedBackground";
 import {
   ArrowLeft,
   Users,
-  CreditCard,
   CalendarDays,
   MapPin,
   CheckCircle,
@@ -18,39 +17,10 @@ import {
   User,
   Loader2,
   AlertCircle,
+  Upload,
+  X,
+  Clock,
 } from "lucide-react";
-
-/* ── Razorpay type declaration ── */
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  prefill?: { name?: string; email?: string; contact?: string };
-  theme?: { color?: string };
-  method?: { upi?: boolean; card?: boolean; netbanking?: boolean; wallet?: boolean };
-  handler: (response: RazorpayResponse) => void;
-  modal?: { ondismiss?: () => void };
-}
-
-interface RazorpayInstance {
-  open: () => void;
-  close: () => void;
-}
-
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
 
 interface EventDetail {
   _id: string;
@@ -65,19 +35,32 @@ interface EventDetail {
   image?: string;
 }
 
-/* ── Load Razorpay script once ── */
-const loadRazorpayScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (document.getElementById("razorpay-script")) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "razorpay-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
+/* ── Compress image to base64 (max 1200px, quality 0.7) ── */
+const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        if (w > maxWidth) {
+          h = (h * maxWidth) / w;
+          w = maxWidth;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject("Canvas error");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 };
 
@@ -85,16 +68,19 @@ const EventRegistrationPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, token } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [registrationPaymentStatus, setRegistrationPaymentStatus] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Payment flow state
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  // Screenshot state
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [screenshotName, setScreenshotName] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -103,11 +89,14 @@ const EventRegistrationPage: React.FC = () => {
         setEvent(res.data);
         if (token) {
           try {
-            const check = await api<{ registered: boolean }>(
+            const check = await api<{ registered: boolean; registration?: { paymentStatus: string } }>(
               `/events/${id}/check-registration`,
               { token }
             );
             setAlreadyRegistered(check.registered);
+            if (check.registration?.paymentStatus) {
+              setRegistrationPaymentStatus(check.registration.paymentStatus);
+            }
           } catch {
             /* ignore */
           }
@@ -122,127 +111,63 @@ const EventRegistrationPage: React.FC = () => {
   }, [id, navigate, token]);
 
   const isTeamEvent = event?.participationType === "team";
+  const isPaidEvent = event ? event.cost > 0 : false;
 
-  /* ── Free event: register directly ── */
-  const handleFreeRegistration = useCallback(async () => {
+  // Dynamic pricing: Apex = ₹149, Other = ₹249
+  const dynamicPrice = user?.university === "apex_university" ? 149 : 249;
+  const displayPrice = isPaidEvent ? dynamicPrice : 0;
+
+  /* ── Handle screenshot file select ── */
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file (JPG, PNG, etc.)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image too large. Maximum 5MB allowed.");
+      return;
+    }
+    try {
+      setError("");
+      const compressed = await compressImage(file);
+      setScreenshot(compressed);
+      setScreenshotName(file.name);
+    } catch {
+      setError("Failed to process image. Please try another file.");
+    }
+  }, []);
+
+  /* ── Remove screenshot ── */
+  const removeScreenshot = () => {
+    setScreenshot(null);
+    setScreenshotName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  /* ── Register (free or paid with screenshot) ── */
+  const handleProceed = useCallback(async () => {
     if (!event || !token) return;
-    setPaymentLoading(true);
+    if (isPaidEvent && !screenshot) {
+      setError("Please upload a screenshot of your payment before proceeding.");
+      return;
+    }
+    setSubmitting(true);
     setError("");
     try {
-      await api(`/events/${id}/register`, { method: "POST", body: {}, token });
+      await api(`/events/${id}/register`, {
+        method: "POST",
+        body: isPaidEvent ? { paymentScreenshot: screenshot } : {},
+        token,
+      });
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
-      setPaymentLoading(false);
+      setSubmitting(false);
     }
-  }, [event, id, token]);
-
-  /* ── Paid event: Razorpay checkout (QR shows automatically) ── */
-  const handlePaidRegistration = useCallback(async () => {
-    if (!event || !token) return;
-    setPaymentLoading(true);
-    setError("");
-
-    try {
-      // 1) Load Razorpay script
-      const loaded = await loadRazorpayScript();
-      if (!loaded) {
-        setError("Failed to load payment gateway. Please check your internet connection.");
-        setPaymentLoading(false);
-        return;
-      }
-
-      // 2) Create order on backend
-      const orderRes = await api<{
-        data: {
-          orderId: string;
-          amount: number;
-          amountInPaise: number;
-          currency: string;
-          keyId: string;
-          eventTitle: string;
-          userName: string;
-          userEmail: string;
-          userPhone: string;
-        };
-      }>("/payments/create-order", {
-        method: "POST",
-        body: { eventId: id },
-        token,
-      });
-
-      const {
-        orderId,
-        amountInPaise,
-        currency,
-        keyId,
-        eventTitle,
-        userName,
-        userEmail,
-        userPhone,
-      } = orderRes.data;
-
-      setPaymentLoading(false);
-
-      // 3) Open Razorpay checkout — QR is shown automatically for UPI
-      const options: RazorpayOptions = {
-        key: keyId,
-        amount: amountInPaise,
-        currency,
-        name: "TECHNOAAGAZ 2026",
-        description: `Registration: ${eventTitle}`,
-        order_id: orderId,
-        prefill: {
-          name: userName,
-          email: userEmail,
-          contact: userPhone,
-        },
-        theme: { color: "#D4A843" },
-        handler: async (response: RazorpayResponse) => {
-          // 4) Verify payment on backend
-          setVerifying(true);
-          try {
-            await api("/payments/verify", {
-              method: "POST",
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              },
-              token,
-            });
-            setSuccess(true);
-          } catch (err: any) {
-            setError(err.message || "Payment verification failed. Contact support if money was deducted.");
-          } finally {
-            setVerifying(false);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setError("Payment was cancelled. You can try again.");
-          },
-        },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-    } catch (err: any) {
-      setError(err.message || "Failed to initiate payment");
-      setPaymentLoading(false);
-    }
-  }, [event, id, token]);
-
-  /* ── Main action ── */
-  const handleProceed = () => {
-    if (!event) return;
-    if (event.cost > 0) {
-      handlePaidRegistration();
-    } else {
-      handleFreeRegistration();
-    }
-  };
+  }, [event, id, token, isPaidEvent, screenshot]);
 
   /* ── Loading screen ── */
   if (loading) {
@@ -255,46 +180,57 @@ const EventRegistrationPage: React.FC = () => {
 
   if (!event) return null;
 
-  /* ── Verifying payment screen ── */
-  if (verifying) {
-    return (
-      <div className="min-h-screen bg-gray-950 relative overflow-hidden">
-        <AnimatedBackground variant="cyan" />
-        <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <Card variant="neon" glowColor="gold" className="max-w-md w-full text-center p-8">
-            <div className="w-20 h-20 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-6">
-              <Loader2 size={40} className="text-gold animate-spin" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Verifying Payment</h2>
-            <p className="text-gray-400">
-              Please wait while we confirm your payment...
-            </p>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   /* ── Already registered screen ── */
   if (alreadyRegistered) {
+    const isPending = registrationPaymentStatus === "pending";
+    const isRejected = registrationPaymentStatus === "failed";
+
     return (
       <div className="min-h-screen bg-gray-950 relative overflow-hidden">
         <AnimatedBackground variant="cyan" />
         <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <Card variant="neon" glowColor="gold" className="max-w-md w-full text-center p-8">
-            <div className="w-20 h-20 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-6">
-              <ShieldCheck size={40} className="text-gold" />
+          <Card variant="neon" glowColor={isPending ? "navy" : isRejected ? "navy" : "gold"} className="max-w-md w-full text-center p-8">
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+              isPending ? "bg-amber-500/20" : isRejected ? "bg-red-500/20" : "bg-gold/20"
+            }`}>
+              {isPending ? (
+                <Clock size={40} className="text-amber-400" />
+              ) : isRejected ? (
+                <AlertCircle size={40} className="text-red-400" />
+              ) : (
+                <ShieldCheck size={40} className="text-gold" />
+              )}
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              Already Registered!
+              {isPending
+                ? "Payment Under Verification"
+                : isRejected
+                ? "Payment Rejected"
+                : "Already Registered!"}
             </h2>
             <p className="text-gray-400 mb-6">
-              You are already registered for{" "}
-              <span className="text-gold font-semibold">{event.title}</span>.
-              {isTeamEvent && (
-                <span className="block mt-2 text-sm">
-                  Go to the event page to create or view your team.
-                </span>
+              {isPending ? (
+                <>
+                  Your payment screenshot for{" "}
+                  <span className="text-gold font-semibold">{event.title}</span>{" "}
+                  is being reviewed by the organizers. You will be confirmed once approved.
+                </>
+              ) : isRejected ? (
+                <>
+                  Your payment for{" "}
+                  <span className="text-gold font-semibold">{event.title}</span>{" "}
+                  was not verified. Please contact the organizers or re-register with a valid screenshot.
+                </>
+              ) : (
+                <>
+                  You are already registered for{" "}
+                  <span className="text-gold font-semibold">{event.title}</span>.
+                  {isTeamEvent && (
+                    <span className="block mt-2 text-sm">
+                      Go to the event page to create or view your team.
+                    </span>
+                  )}
+                </>
               )}
             </p>
             <div className="flex gap-3 justify-center">
@@ -317,20 +253,36 @@ const EventRegistrationPage: React.FC = () => {
       <div className="min-h-screen bg-gray-950 relative overflow-hidden">
         <AnimatedBackground variant="cyan" />
         <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <Card variant="neon" glowColor="gold" className="max-w-md w-full text-center p-8">
-            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={40} className="text-green-400" />
+          <Card variant="neon" glowColor={isPaidEvent ? "navy" : "gold"} className="max-w-md w-full text-center p-8">
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+              isPaidEvent ? "bg-amber-500/20" : "bg-green-500/20"
+            }`}>
+              {isPaidEvent ? (
+                <Clock size={40} className="text-amber-400" />
+              ) : (
+                <CheckCircle size={40} className="text-green-400" />
+              )}
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              Registration Successful!
+              {isPaidEvent ? "Payment Under Verification" : "Registration Successful!"}
             </h2>
             <p className="text-gray-400 mb-2">
-              You have been registered for{" "}
-              <span className="text-gold font-semibold">{event.title}</span>
+              {isPaidEvent ? (
+                <>
+                  Your screenshot for{" "}
+                  <span className="text-gold font-semibold">{event.title}</span>{" "}
+                  has been submitted. The organizers will verify your payment.
+                </>
+              ) : (
+                <>
+                  You have been registered for{" "}
+                  <span className="text-gold font-semibold">{event.title}</span>
+                </>
+              )}
             </p>
-            {event.cost > 0 && (
-              <p className="text-green-400 text-sm mb-4">
-                Payment of ₹{event.cost} confirmed
+            {displayPrice > 0 && (
+              <p className="text-amber-400 text-sm mb-4">
+                ₹{displayPrice} — Payment screenshot submitted for verification
               </p>
             )}
             {isTeamEvent && (
@@ -458,11 +410,11 @@ const EventRegistrationPage: React.FC = () => {
               </Card>
             )}
 
-            {/* Payment info card */}
-            {event.cost > 0 && (
+            {/* Payment info card — QR + Screenshot Upload */}
+            {isPaidEvent && (
               <Card variant="neon" glowColor="gold">
                 <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-4">
-                  <CreditCard size={18} className="text-gold" /> Payment Details
+                  <QrCode size={18} className="text-gold" /> Payment Details
                 </h3>
 
                 <div className="space-y-3 mb-5">
@@ -474,32 +426,91 @@ const EventRegistrationPage: React.FC = () => {
                     <span>Participant</span>
                     <span className="text-white font-medium">{user?.name}</span>
                   </div>
+                  <div className="flex justify-between text-gray-300 text-sm">
+                    <span>University</span>
+                    <span className="text-white font-medium">
+                      {user?.university === "apex_university" ? "Apex University" : user?.collegeName || "Other"}
+                    </span>
+                  </div>
                   <div className="border-t border-white/10 pt-3 flex justify-between items-center">
                     <span className="text-lg font-semibold text-white">Total</span>
                     <span className="text-2xl font-bold text-gold flex items-center gap-1">
-                      <IndianRupee size={18} /> {event.cost}
+                      <IndianRupee size={18} /> {displayPrice}
                     </span>
                   </div>
+                  <p className="text-xs text-gray-500">
+                    {user?.university === "apex_university"
+                      ? "Apex University students get a discounted rate of ₹149"
+                      : "Registration fee for external participants is ₹249"}
+                  </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-white/5 mb-5">
-                  <div className="flex items-center gap-3 text-sm text-gray-400">
-                    <QrCode size={20} className="text-gold shrink-0" />
-                    <div>
-                      <p className="text-white font-medium mb-0.5">Scan &amp; Pay via UPI</p>
-                      <p className="text-xs text-gray-500">
-                        Clicking the button below will open a secure Razorpay payment window.
-                        Scan the QR code with any UPI app (GPay, PhonePe, Paytm, etc.) to pay
-                        exactly <span className="text-gold">₹{event.cost}</span>. Payment is
-                        verified automatically.
-                      </p>
-                    </div>
+                {/* QR Code Image */}
+                <div className="flex flex-col items-center mb-5">
+                  <p className="text-sm text-gray-300 mb-3 text-center">
+                    Scan the QR code below with any UPI app (GPay, PhonePe, Paytm, etc.) and pay{" "}
+                    <span className="text-gold font-semibold">₹{displayPrice}</span>
+                  </p>
+                  <div className="bg-white rounded-xl p-3">
+                    <img
+                      src="/qr.jpeg"
+                      alt="Payment QR Code"
+                      className="w-52 h-52 object-contain"
+                    />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                {/* Screenshot Upload */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-white">
+                    Upload Payment Screenshot
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+
+                  {!screenshot ? (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full p-6 rounded-xl border-2 border-dashed border-white/15 hover:border-gold/40 transition-colors bg-white/3 flex flex-col items-center gap-2 cursor-pointer"
+                    >
+                      <Upload size={24} className="text-gray-400" />
+                      <span className="text-sm text-gray-400">
+                        Click to upload screenshot
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        PNG, JPG up to 5MB
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="relative rounded-xl overflow-hidden border border-white/10">
+                      <img
+                        src={screenshot}
+                        alt="Payment screenshot"
+                        className="w-full max-h-64 object-contain bg-black/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeScreenshot}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/70 hover:bg-red-500/80 transition-colors"
+                      >
+                        <X size={16} className="text-white" />
+                      </button>
+                      <div className="p-2 bg-black/30 text-xs text-gray-400 truncate">
+                        {screenshotName}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-gray-500 mt-4">
                   <ShieldCheck size={14} className="text-green-400/70" />
-                  Payments are secured by Razorpay. We never store your card/UPI details.
+                  Your payment screenshot will be verified by the organizers.
                 </div>
               </Card>
             )}
@@ -510,16 +521,16 @@ const EventRegistrationPage: React.FC = () => {
               size="lg"
               className="w-full"
               onClick={handleProceed}
-              disabled={paymentLoading}
+              disabled={submitting || (isPaidEvent && !screenshot)}
             >
-              {paymentLoading ? (
+              {submitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 size={18} className="animate-spin" />
-                  Preparing Payment…
+                  Registering…
                 </span>
-              ) : event.cost > 0 ? (
+              ) : isPaidEvent ? (
                 <span className="flex items-center justify-center gap-2">
-                  <QrCode size={18} /> Pay ₹{event.cost} — Scan QR
+                  <CheckCircle size={18} /> Complete Registration — ₹{displayPrice} Paid
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
@@ -527,6 +538,12 @@ const EventRegistrationPage: React.FC = () => {
                 </span>
               )}
             </Button>
+
+            {isPaidEvent && !screenshot && (
+              <p className="text-xs text-center text-gray-500 mt-2">
+                Upload your payment screenshot above to enable registration
+              </p>
+            )}
           </div>
 
           {/* Sidebar — Event summary */}
@@ -566,8 +583,8 @@ const EventRegistrationPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 font-semibold">
                   <IndianRupee size={14} className="text-gold/70" />
-                  {event.cost > 0 ? (
-                    <span className="text-white">₹{event.cost}</span>
+                  {isPaidEvent ? (
+                    <span className="text-white">₹{displayPrice}</span>
                   ) : (
                     <span className="text-green-400">Free</span>
                   )}
@@ -575,15 +592,15 @@ const EventRegistrationPage: React.FC = () => {
               </div>
 
               {/* Trust badges */}
-              {event.cost > 0 && (
+              {isPaidEvent && (
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                     <ShieldCheck size={12} className="text-green-400/70" />
-                    Secure Payment by Razorpay
+                    Payment verified by organizers
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <QrCode size={12} className="text-gold/50" />
-                    UPI QR • GPay • PhonePe • Paytm
+                    Scan QR &amp; Upload Screenshot
                   </div>
                 </div>
               )}

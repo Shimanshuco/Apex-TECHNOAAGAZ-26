@@ -136,19 +136,19 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
 
       {/* ── Mobile bottom tab bar ────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/5 md:hidden">
-        <div className="flex justify-around py-2">
-          {navLinks.slice(0, 5).map((l) => {
+        <div className="flex justify-around py-2 overflow-x-auto scrollbar-hide">
+          {navLinks.map((l) => {
             const Icon = l.icon;
             const active = pathname === l.path;
             return (
               <button
                 key={l.path}
                 onClick={() => navigate(l.path)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[11px] transition-all ${
+                className={`flex flex-col items-center gap-0.5 px-1.5 py-1 text-[10px] min-w-[52px] shrink-0 transition-all ${
                   active ? "text-gold" : "text-gray-500"
                 }`}
               >
-                <Icon size={20} />
+                <Icon size={18} />
                 {l.label}
               </button>
             );

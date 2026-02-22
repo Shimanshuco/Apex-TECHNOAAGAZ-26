@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { NavItem, SocialIcon } from '../components';
 import { MenuIcon, CloseIcon, type IconProps } from '../icons';
 
@@ -21,6 +23,8 @@ export interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ navItems, socialLinks = [], activeNav, onNavChange, className = '' }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -83,14 +87,22 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, socialLinks = [], activeNav
           ))}
         </div>
 
-        {/* Register button in mobile menu */}
-        <a
-          href="#register"
-          className="mt-4 flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-white border-2 border-pink-500 bg-pink-500/10 hover:bg-pink-500/25 transition-all duration-300 text-center"
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          Register Now
-        </a>
+        {/* Auth button in mobile menu — Profile or Register */}
+        {user ? (
+          <button
+            className="mt-4 flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-white border-2 border-cyan-500 bg-cyan-500/10 hover:bg-cyan-500/25 transition-all duration-300 text-center"
+            onClick={() => { navigate('/profile'); setIsMobileMenuOpen(false); }}
+          >
+            My Profile
+          </button>
+        ) : (
+          <button
+            className="mt-4 flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-white border-2 border-pink-500 bg-pink-500/10 hover:bg-pink-500/25 transition-all duration-300 text-center"
+            onClick={() => { navigate('/register'); setIsMobileMenuOpen(false); }}
+          >
+            Register Now
+          </button>
+        )}
 
         {/* Divider */}
         {socialLinks.length > 0 && (

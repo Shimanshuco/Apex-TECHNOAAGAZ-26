@@ -30,7 +30,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
 
         {/* Date & Subtitle */}
         <p className="text-gray-200 text-base md:text-lg tracking-wider mb-1 font-medium" style={{ textShadow: '0 0 10px rgba(255,255,255,0.4)' }}>
-          10<sup>th</sup> - 13<sup>th</sup> March &nbsp;&nbsp; 2 0 2 6
+          10<sup>th</sup> - 12<sup>th</sup> March &nbsp;&nbsp; 2 0 2 6
         </p>
 
         

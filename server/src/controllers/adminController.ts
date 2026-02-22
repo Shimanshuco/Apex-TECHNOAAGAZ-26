@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
+import { Registration } from "../models/Registration";
 import { signToken } from "../utils/jwt";
 import { generateQR } from "../utils/qrGenerator";
 import { volunteerSignupSchema, adminSignupSchema, adminLoginSchema } from "../utils/validators";
@@ -118,6 +119,16 @@ export const adminSignup = async (req: Request, res: Response): Promise<void> =>
       role: "admin",
     });
 
+    // Generate QR for admin
+    const qrCode = await generateQR({
+      userId: String(user._id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    user.qrCode = qrCode;
+    await user.save();
+
     const token = signToken({ id: String(user._id), role: user.role });
 
     res.status(201).json({
@@ -130,6 +141,7 @@ export const adminSignup = async (req: Request, res: Response): Promise<void> =>
           name: user.name,
           email: user.email,
           role: user.role,
+          qrCode: user.qrCode,
         },
       },
     });
@@ -218,6 +230,119 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
     res.json({ success: true, count: users.length, data: users });
   } catch (err) {
     console.error("GetUsersByRole error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   PAYMENT VERIFICATION (Admin-only)
+   ═══════════════════════════════════════════════════════ */
+
+/**
+ * GET /api/admin/registrations/pending
+ * List all registrations with paymentStatus "pending" (screenshot uploaded, awaiting review).
+ */
+export const getPendingPayments = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const registrations = await Registration.find({ paymentStatus: "pending" })
+      .populate("user", "name email phone university collegeName")
+      .populate("event", "title category cost date")
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, count: registrations.length, data: registrations });
+  } catch (err) {
+    console.error("GetPendingPayments error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * PATCH /api/admin/registrations/:id/approve
+ * Admin approves a pending payment → sets paymentStatus "completed" and
+ * adds event to user.registeredEvents.
+ */
+export const approvePayment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const reg = await Registration.findById(req.params.id);
+    if (!reg) {
+      res.status(404).json({ success: false, message: "Registration not found" });
+      return;
+    }
+    if (reg.paymentStatus !== "pending") {
+      res.status(400).json({ success: false, message: `Payment is already ${reg.paymentStatus}` });
+      return;
+    }
+
+    reg.paymentStatus = "completed";
+    await reg.save();
+
+    // Add event to user's registeredEvents
+    const user = await User.findById(reg.user);
+    if (user && !user.registeredEvents.map(String).includes(String(reg.event))) {
+      user.registeredEvents.push(reg.event as any);
+      await user.save();
+    }
+
+    res.json({ success: true, message: "Payment approved", data: reg });
+  } catch (err) {
+    console.error("ApprovePayment error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/admin/events/registration-stats
+ * Returns registration counts per event (total, completed, pending, failed)
+ */
+export const getEventRegistrationStats = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const stats = await Registration.aggregate([
+      {
+        $group: {
+          _id: "$event",
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ["$paymentStatus", "completed"] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $eq: ["$paymentStatus", "failed"] }, 1, 0] } },
+        },
+      },
+    ]);
+
+    const mapped: Record<string, { total: number; completed: number; pending: number; failed: number }> = {};
+    for (const s of stats) {
+      mapped[s._id.toString()] = { total: s.total, completed: s.completed, pending: s.pending, failed: s.failed };
+    }
+
+    res.json({ success: true, data: mapped });
+  } catch (err) {
+    console.error("GetEventRegistrationStats error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * PATCH /api/admin/registrations/:id/reject
+ * Admin rejects a pending payment → sets paymentStatus "failed".
+ * User can re-upload a screenshot later.
+ */
+export const rejectPayment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const reg = await Registration.findById(req.params.id);
+    if (!reg) {
+      res.status(404).json({ success: false, message: "Registration not found" });
+      return;
+    }
+    if (reg.paymentStatus !== "pending") {
+      res.status(400).json({ success: false, message: `Payment is already ${reg.paymentStatus}` });
+      return;
+    }
+
+    reg.paymentStatus = "failed";
+    await reg.save();
+
+    res.json({ success: true, message: "Payment rejected", data: reg });
+  } catch (err) {
+    console.error("RejectPayment error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

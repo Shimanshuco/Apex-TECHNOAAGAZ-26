@@ -20,6 +20,7 @@ export interface IRegistration extends Document {
   paymentId?: string;
   razorpayOrderId?: string;
   razorpayQrId?: string;
+  paymentScreenshot?: string;
   amount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +47,7 @@ const registrationSchema = new Schema<IRegistration>(
     paymentId: { type: String },
     razorpayOrderId: { type: String },
     razorpayQrId: { type: String },
+    paymentScreenshot: { type: String },
     amount: { type: Number, required: true, min: 0 },
   },
   { timestamps: true },
