@@ -1,14 +1,12 @@
 {
   "version": 2,
-  "installCommand": "npm install",
-  "buildCommand": "npm run vercel-build",
   "builds": [
     {
-      "src": "dist/vercel.js",
+      "src": "src/vercel.ts",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/dist/vercel.js" }
+    { "source": "/(.*)", "destination": "/src/vercel.ts" }
   ]
 }
