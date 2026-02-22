@@ -2,8 +2,17 @@
  * Central fetch wrapper — reads VITE_API_URL at build time.
  * For Vercel: set VITE_API_URL in the dashboard to your backend URL.
  * Locally it defaults to http://localhost:5000/api via .env
+ *
+ * Ensures /api suffix is always present, even if someone sets
+ * VITE_API_URL without it (e.g. "https://backend.vercel.app").
  */
-const BASE_URL: string = import.meta.env.VITE_API_URL || "/api";
+function buildBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
+  const trimmed = raw.replace(/\/+$/, ""); // strip trailing slashes
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+const BASE_URL: string = buildBaseUrl();
 
 interface ApiOptions {
   method?: string;
