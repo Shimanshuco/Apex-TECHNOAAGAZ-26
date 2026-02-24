@@ -26,8 +26,8 @@ const highlights = [
   },
   {
     icon: Lightbulb,
-    title: "Workshops",
-    desc: "Hands-on sessions with industry experts",
+    title: "Literary",
+    desc: "Literary competitions, debates",
     color: "text-amber-400 bg-amber-500/20",
   },
   {
@@ -103,10 +103,10 @@ const AboutPage: React.FC = () => {
       </div>
 
       {/* Description */}
-      <Card variant="glass" className="max-w-3xl mx-auto">
+      {/* <Card variant="glass" className="max-w-3xl mx-auto">
         <h2 className="text-xl font-bold text-white mb-4">Techno</h2>
         
-      </Card>
+      </Card> */}
     </>
   );
 };

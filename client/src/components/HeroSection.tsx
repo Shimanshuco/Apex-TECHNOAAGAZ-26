@@ -12,7 +12,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
 
   return (
     <main className={`relative z-20 min-h-screen flex flex-col items-center justify-center px-6 pb-72 md:pb-48 md:pl-32 md:pr-20 ${className}`}>
-      <div className="text-center max-w-4xl mx-auto -mt-8 md:-mt-14">
+      <div className="text-center max-w-4xl mx-auto -mt-8 md:-mt-14 md:top-25">
         {/* Tagline */}
         <p className="text-cyan-300 text-base md:text-lg lg:text-xl font-semibold tracking-[0.3em] uppercase mb-2 animate-fade-in-down drop-shadow-[0_0_12px_rgba(0,255,255,0.6)]">
           Apex University Presents

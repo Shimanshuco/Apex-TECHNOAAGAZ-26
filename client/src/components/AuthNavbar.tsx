@@ -8,15 +8,17 @@ const AuthNavbar: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-        {/* Brand */}
+        {/* Left: Brand */}
         <button
           onClick={() => navigate("/")}
-          className="text-lg font-bold bg-linear-to-r from-navy to-gold bg-clip-text text-transparent"
+          className="flex items-center gap-2"
         >
-          TECHNOAAGAZ
+          <span className="text-lg font-bold bg-linear-to-r from-navy to-gold bg-clip-text text-transparent">
+            TECHNOAAGAZ
+          </span>
         </button>
 
-        {/* Quick links */}
+        {/* Right: quick links */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => navigate("/")}

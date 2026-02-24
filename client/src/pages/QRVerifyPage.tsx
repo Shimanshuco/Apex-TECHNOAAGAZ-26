@@ -301,7 +301,7 @@ const QRVerifyPage: React.FC = () => {
                       </p>
                       {result.user.firstScannedAt && (
                         <p className="text-red-300/60 text-xs">
-                          First scanned: {new Date(result.user.firstScannedAt).toLocaleString()}
+                          First scanned: {new Date(result.user.firstScannedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}
                         </p>
                       )}
                     </div>

@@ -16,17 +16,17 @@ import {
 const socials = [
   {
     icon: Instagram,
-    label: "SWW Instagram",
-    href: "https://www.instagram.com/au_studentwelfarewing?igsh=MXNqYnd0dmRkeml3bg==",
-    handle: "@au_studentwelfarewing",
+    label: "Apex University Instagram",
+    href: "https://www.instagram.com/apex_university/",
+    handle: "@apex_university",
     color: "hover:text-pink-400",
     bg: "group-hover:bg-pink-500/20",
   },
   {
     icon: Instagram,
-    label: "Apex University Instagram",
-    href: "https://www.instagram.com/apex_university/",
-    handle: "@apex_university",
+    label: "SWW Instagram",
+    href: "https://www.instagram.com/au_studentwelfarewing?igsh=MXNqYnd0dmRkeml3bg==",
+    handle: "@au_studentwelfarewing",
     color: "hover:text-pink-400",
     bg: "group-hover:bg-pink-500/20",
   },
@@ -93,7 +93,11 @@ const ContactPage: React.FC = () => {
               </div>
               <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-300 group">
                 <div className="w-40 h-48 sm:w-48 sm:h-56 rounded-2xl border-3 border-navy-light/50 shadow-lg shadow-navy/20 group-hover:scale-105 transition-transform bg-navy/30 mb-4 flex items-center justify-center">
-                  <span className="text-5xl font-bold text-navy-light/60">PS</span>
+                  <img
+                  src="/EventMgm/Coconvenor.jpg"
+                  alt="Co-Convenor — Priyanshu Sharma"
+                  className="w-40 h-48 sm:w-48 sm:h-56 rounded-2xl object-cover object-top border-3 border-gold/50 shadow-lg shadow-gold/20 group-hover:scale-105 transition-transform bg-gold/20 mb-4"
+                />
                 </div>
                 <p className="text-white font-bold text-lg">Co-Convenor</p>
                 <p className="text-gold text-sm mt-1">Name : Priyanshu Sharma</p>

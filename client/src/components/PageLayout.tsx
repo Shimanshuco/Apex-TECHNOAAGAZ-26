@@ -54,9 +54,9 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
       {/* ── Top navbar ───────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Brand name — no logo */}
+          {/* Left: brand */}
           <div
-            className="flex items-center gap-3 cursor-pointer shrink-0"
+            className="flex items-center gap-2 cursor-pointer shrink-0"
             onClick={() => navigate("/")}
           >
             <span className="text-lg font-bold bg-linear-to-r from-navy to-gold bg-clip-text text-transparent">
@@ -86,7 +86,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
             })}
           </div>
 
-          {/* Auth controls */}
+          {/* Right: Logos + Auth controls */}
           <div className="flex items-center gap-2 shrink-0">
             {user ? (
               <>

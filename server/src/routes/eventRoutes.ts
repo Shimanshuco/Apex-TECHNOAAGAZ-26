@@ -13,7 +13,6 @@ import {
   getEventRegistrations,
   getMyRegistrations,
   checkRegistration,
-  deleteRegistration,
   getPricing,
 } from "../controllers/eventController";
 import { authenticate } from "../middlewares/auth";
@@ -51,8 +50,5 @@ router.post("/:id/create-team", authenticate, createTeam);
 // Leader: manage team members
 router.post("/:id/add-team-member", authenticate, addTeamMember);
 router.delete("/:id/remove-team-member", authenticate, removeTeamMember);
-
-// Delete own registration
-router.delete("/registrations/:regId", authenticate, deleteRegistration);
 
 export default router;

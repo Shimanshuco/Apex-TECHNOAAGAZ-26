@@ -21,7 +21,6 @@ import {
   Pencil,
   X,
   Save,
-  Trash2,
   UserCircle,
   MapPin,
   Droplets,
@@ -148,16 +147,6 @@ const ProfilePage: React.FC = () => {
       setEditError(err.message || "Failed to update profile");
     } finally {
       setEditSaving(false);
-    }
-  };
-
-  const handleDeleteRegistration = async (regId: string) => {
-    if (!confirm("Delete this registration? This cannot be undone.")) return;
-    try {
-      await api(`/events/registrations/${regId}`, { method: "DELETE", token });
-      setMyRegs((prev) => prev.filter((r) => r._id !== regId));
-    } catch (err: any) {
-      alert(err.message || "Failed to delete registration");
     }
   };
 
@@ -401,13 +390,6 @@ const ProfilePage: React.FC = () => {
                           className="text-xs text-gold hover:text-gold-light transition-colors"
                         >
                           View →
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRegistration(reg._id)}
-                          className="p-1.5 rounded-lg border border-white/10 text-gray-600 hover:text-red-400 hover:border-red-500/20 transition-all"
-                          title="Delete registration"
-                        >
-                          <Trash2 size={12} />
                         </button>
                       </div>
                     </div>

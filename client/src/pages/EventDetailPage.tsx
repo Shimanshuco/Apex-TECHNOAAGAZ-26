@@ -788,6 +788,11 @@ const EventDetailPage: React.FC = () => {
                           )}
                         </span>
                       )}
+                      {event.participationType === "team" && (
+                        <span className="text-xs text-amber-400/80 mt-1">
+                          per person — each team member pays individually
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <span className="text-white font-semibold text-lg">Paid Event</span>

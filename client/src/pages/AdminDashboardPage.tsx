@@ -34,6 +34,8 @@ import {
   Phone,
   UserCheck,
   UsersRound,
+  FolderOpen,
+  Link,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -101,6 +103,15 @@ interface RegistrationItem {
 }
 
 type EventRegStats = Record<string, { total: number; completed: number; pending: number; failed: number }>;
+
+interface GalleryFolderItem {
+  _id: string;
+  year: number;
+  title: string;
+  driveFolderId: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
 const ROLE_OPTIONS = [
   { value: "", label: "All Roles" },
@@ -267,7 +278,7 @@ const AdminDashboardPage: React.FC = () => {
   const [artists, setArtists] = useState<ArtistItem[]>([]);
   const [roleFilter, setRoleFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments" | "gallery">("users");
 
   // Payments
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
@@ -283,17 +294,25 @@ const AdminDashboardPage: React.FC = () => {
   // Artists
   const [artistModal, setArtistModal] = useState<{ open: boolean; artist: ArtistItem | null }>({ open: false, artist: null });
 
+  // Gallery
+  const [galleryFolders, setGalleryFolders] = useState<GalleryFolderItem[]>([]);
+  const [galleryForm, setGalleryForm] = useState({ year: "", title: "", driveFolderLink: "" });
+  const [galleryEditing, setGalleryEditing] = useState<string | null>(null);
+  const [gallerySaving, setGallerySaving] = useState(false);
+  const [galleryError, setGalleryError] = useState("");
+
   /* ── Data fetch ── */
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes] = await Promise.all([
+      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes, galleryRes] = await Promise.all([
         api<{ data: Stats }>("/qr/stats", { token }),
         api<{ data: UserItem[] }>(roleFilter ? `/admin/users/${roleFilter}` : "/admin/users", { token }),
         api<{ data: EventItem[] }>("/events"),
         api<{ data: ArtistItem[] }>("/artists"),
         api<{ data: PendingPayment[] }>("/admin/registrations/pending", { token }),
         api<{ data: EventRegStats }>("/admin/events/registration-stats", { token }),
+        api<{ data: GalleryFolderItem[] }>("/gallery/all", { token }),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
@@ -301,6 +320,7 @@ const AdminDashboardPage: React.FC = () => {
       setArtists(artistsRes.data);
       setPendingPayments(paymentsRes.data);
       setEventRegStats(regStatsRes.data);
+      setGalleryFolders(galleryRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -381,6 +401,51 @@ const AdminDashboardPage: React.FC = () => {
     } catch { /* noop */ }
   };
 
+  /* ── Gallery helpers ── */
+  const resetGalleryForm = () => {
+    setGalleryForm({ year: "", title: "", driveFolderLink: "" });
+    setGalleryEditing(null);
+    setGalleryError("");
+  };
+
+  const handleSaveGalleryFolder = async () => {
+    if (!galleryForm.year.trim() || !galleryForm.title.trim() || !galleryForm.driveFolderLink.trim()) {
+      setGalleryError("All fields are required");
+      return;
+    }
+    setGallerySaving(true);
+    setGalleryError("");
+    try {
+      const payload = { ...galleryForm, year: Number(galleryForm.year) };
+      if (galleryEditing) {
+        await api(`/gallery/${galleryEditing}`, { method: "PUT", token, body: payload });
+      } else {
+        await api("/gallery", { method: "POST", token, body: payload });
+      }
+      const res = await api<{ data: GalleryFolderItem[] }>("/gallery/all", { token });
+      setGalleryFolders(res.data || []);
+      resetGalleryForm();
+    } catch (err: any) {
+      setGalleryError(err?.message || "Failed to save gallery folder");
+    } finally {
+      setGallerySaving(false);
+    }
+  };
+
+  const handleEditGalleryFolder = (folder: GalleryFolderItem) => {
+    setGalleryForm({ year: String(folder.year), title: folder.title, driveFolderLink: folder.driveFolderId });
+    setGalleryEditing(folder._id);
+    setGalleryError("");
+  };
+
+  const handleDeleteGalleryFolder = async (id: string) => {
+    if (!confirm("Delete this gallery folder?")) return;
+    try {
+      await api(`/gallery/${id}`, { method: "DELETE", token });
+      setGalleryFolders((prev) => prev.filter((f) => f._id !== id));
+    } catch { /* noop */ }
+  };
+
   /* ── Loading ── */
   if (loading) {
     return (
@@ -396,6 +461,7 @@ const AdminDashboardPage: React.FC = () => {
     { key: "events" as const, icon: CalendarDays, label: "Events", count: events.length },
     { key: "payments" as const, icon: CreditCard, label: "Payments", count: pendingPayments.length },
     { key: "artists" as const, icon: Music, label: "Artists", count: artists.length },
+    { key: "gallery" as const, icon: FolderOpen, label: "Gallery", count: galleryFolders.length },
   ];
 
   return (
@@ -1028,6 +1094,115 @@ const AdminDashboardPage: React.FC = () => {
                         <Trash2 size={13} />
                       </button>
                     </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Gallery Tab ── */}
+      {activeTab === "gallery" && (
+        <div className="space-y-6">
+          {/* Add / Edit Form */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              {galleryEditing ? "Edit Gallery Folder" : "Add Gallery Folder"}
+            </h3>
+            {galleryError && (
+              <p className="text-red-400 text-sm mb-3">{galleryError}</p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Year</label>
+                <input
+                  type="number"
+                  value={galleryForm.year}
+                  onChange={(e) => setGalleryForm((f) => ({ ...f, year: e.target.value }))}
+                  className="w-full rounded-lg bg-navy/50 border border-white/10 px-3 py-2 text-white text-sm focus:border-gold/50 focus:outline-none"
+                  placeholder="2026"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={galleryForm.title}
+                  onChange={(e) => setGalleryForm((f) => ({ ...f, title: e.target.value }))}
+                  className="w-full rounded-lg bg-navy/50 border border-white/10 px-3 py-2 text-white text-sm focus:border-gold/50 focus:outline-none"
+                  placeholder="TECHNOAAGAZ 2026"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Google Drive Folder Link</label>
+                <input
+                  type="text"
+                  value={galleryForm.driveFolderLink}
+                  onChange={(e) => setGalleryForm((f) => ({ ...f, driveFolderLink: e.target.value }))}
+                  className="w-full rounded-lg bg-navy/50 border border-white/10 px-3 py-2 text-white text-sm focus:border-gold/50 focus:outline-none"
+                  placeholder="https://drive.google.com/drive/folders/..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="primary" size="sm" onClick={handleSaveGalleryFolder} disabled={gallerySaving}>
+                <span className="flex items-center gap-2">
+                  {gallerySaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  {galleryEditing ? "Update Folder" : "Add Folder"}
+                </span>
+              </Button>
+              {galleryEditing && (
+                <Button variant="outline" size="sm" onClick={resetGalleryForm}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </Card>
+
+          {/* Folder List */}
+          {galleryFolders.length === 0 ? (
+            <Card className="p-8 text-center">
+              <FolderOpen size={36} className="mx-auto text-gray-600 mb-2" />
+              <p className="text-gray-500 text-sm">No gallery folders yet. Add one above.</p>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {galleryFolders.map((folder) => (
+                <Card key={folder._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-gold/10 flex items-center justify-center shrink-0">
+                      <FolderOpen size={18} className="text-gold" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-medium text-sm truncate">{folder.title}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <span>Year: {folder.year}</span>
+                        <span>•</span>
+                        <span className={folder.isActive ? "text-emerald-400" : "text-red-400"}>
+                          {folder.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate mt-0.5 flex items-center gap-1">
+                        <Link size={10} /> {folder.driveFolderId}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleEditGalleryFolder(folder)}
+                      className="p-1.5 rounded-md text-gray-500 hover:text-gold hover:bg-gold/10 transition-all"
+                      title="Edit"
+                    >
+                      <Edit size={13} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGalleryFolder(folder._id)}
+                      className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Delete"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </Card>
               ))}
