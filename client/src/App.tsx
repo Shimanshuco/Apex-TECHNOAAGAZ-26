@@ -4,7 +4,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import VolunteerSignupPage from './pages/VolunteerSignupPage';
-import AdminSignupPage from './pages/AdminSignupPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import EventRegistrationPage from './pages/EventRegistrationPage';
@@ -15,6 +14,7 @@ import QRVerifyPage from './pages/QRVerifyPage';
 import ArtistsPage from './pages/ArtistsPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
+import PreviousTechnoPage from './pages/PreviousTechnoPage';
 import PageLayout from './components/PageLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -29,7 +29,6 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin/signup" element={<AdminSignupPage />} />
         <Route path="/volunteer/signup" element={<VolunteerSignupPage />} />
 
         {/* Public pages inside PageLayout */}
@@ -38,6 +37,7 @@ function App() {
         <Route path="/artists" element={<PageLayout><ArtistsPage /></PageLayout>} />
         <Route path="/about" element={<PageLayout><AboutPage /></PageLayout>} />
         <Route path="/contact" element={<PageLayout><ContactPage /></PageLayout>} />
+        <Route path="/gallery" element={<PageLayout><PreviousTechnoPage /></PageLayout>} />
 
         {/* Protected — any authenticated user */}
         <Route path="/profile" element={<ProtectedRoute><PageLayout><ProfilePage /></PageLayout></ProtectedRoute>} />

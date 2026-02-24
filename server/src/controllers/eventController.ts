@@ -3,6 +3,28 @@ import { Event } from "../models/Event";
 import { User } from "../models/User";
 import { Registration } from "../models/Registration";
 import { eventSchema, eventRegistrationSchema } from "../utils/validators";
+import { ENV } from "../config/env";
+
+/**
+ * GET /api/events/pricing
+ * Returns current pricing tiers + early-bird deadline.
+ */
+export const getPricing = (_req: Request, res: Response): void => {
+  const now = new Date();
+  const deadline = new Date(ENV.EARLY_BIRD_DEADLINE + "T23:59:59.999+05:30");
+  const isEarlyBird = now <= deadline;
+
+  res.json({
+    success: true,
+    data: {
+      apex: ENV.PRICE_APEX,
+      otherEarly: ENV.PRICE_OTHER_EARLY,
+      otherRegular: ENV.PRICE_OTHER_REGULAR,
+      earlyBirdDeadline: ENV.EARLY_BIRD_DEADLINE,
+      isEarlyBird,
+    },
+  });
+};
 
 /**
  * POST /api/events
@@ -156,16 +178,28 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     // Check if already registered
     const existingReg = await Registration.findOne({ event: event._id, user: req.userId });
     if (existingReg) {
-      res.status(400).json({ success: false, message: "Already registered for this event" });
-      return;
+      // Allow re-registration if payment was rejected
+      if (existingReg.paymentStatus === "failed") {
+        await Registration.deleteOne({ _id: existingReg._id });
+      } else {
+        res.status(400).json({ success: false, message: "Already registered for this event" });
+        return;
+      }
     }
 
     const eventCost = event.cost || 0;
 
-    // Dynamic pricing: Apex University = ₹149, Other = ₹249
-    const amount = eventCost > 0
-      ? (user.university === "apex_university" ? 149 : 249)
-      : 0;
+    // Dynamic pricing from env: Apex = PRICE_APEX, Other = early-bird / regular
+    let amount = 0;
+    if (eventCost > 0) {
+      if (user.university === "apex_university") {
+        amount = ENV.PRICE_APEX;
+      } else {
+        const now = new Date();
+        const deadline = new Date(ENV.EARLY_BIRD_DEADLINE + "T23:59:59.999+05:30");
+        amount = now <= deadline ? ENV.PRICE_OTHER_EARLY : ENV.PRICE_OTHER_REGULAR;
+      }
+    }
 
     // For paid events, require a payment screenshot
     if (amount > 0) {

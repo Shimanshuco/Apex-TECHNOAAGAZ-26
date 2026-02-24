@@ -14,6 +14,7 @@ import {
   getMyRegistrations,
   checkRegistration,
   deleteRegistration,
+  getPricing,
 } from "../controllers/eventController";
 import { authenticate } from "../middlewares/auth";
 import { roleGuard } from "../middlewares/roleGuard";
@@ -23,6 +24,7 @@ const router = Router();
 // Public
 router.get("/", getAllEvents);
 router.get("/category/:category", getEventsByCategory);
+router.get("/pricing", getPricing);
 
 // Authenticated user: my registrations (must be BEFORE /:id)
 router.get("/user/my-registrations", authenticate, getMyRegistrations);

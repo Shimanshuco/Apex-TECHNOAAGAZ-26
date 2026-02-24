@@ -4,7 +4,7 @@ import { User } from "../models/User";
 import { Registration } from "../models/Registration";
 import { signToken } from "../utils/jwt";
 import { generateQR } from "../utils/qrGenerator";
-import { volunteerSignupSchema, adminSignupSchema, adminLoginSchema } from "../utils/validators";
+import { volunteerSignupSchema, adminLoginSchema } from "../utils/validators";
 import { ENV } from "../config/env";
 
 /**

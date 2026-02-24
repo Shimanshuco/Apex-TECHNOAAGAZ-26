@@ -11,4 +11,10 @@ export const ENV = {
   VOLUNTEER_SECRET: process.env.VOLUNTEER_SECRET || "ApexVolTechno26",
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "",
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "",
+
+  // Dynamic pricing
+  PRICE_APEX: Number(process.env.PRICE_APEX) || 149,
+  PRICE_OTHER_EARLY: Number(process.env.PRICE_OTHER_EARLY) || 300,
+  PRICE_OTHER_REGULAR: Number(process.env.PRICE_OTHER_REGULAR) || 350,
+  EARLY_BIRD_DEADLINE: process.env.EARLY_BIRD_DEADLINE || "2026-02-28",
 } as const;

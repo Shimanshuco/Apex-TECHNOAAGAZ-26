@@ -14,6 +14,7 @@ import {
   LogOut,
   LogIn,
   UserPlus,
+  Image,
 } from "lucide-react";
 
 interface PageLayoutProps {
@@ -32,6 +33,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
     { path: "/artists", icon: Music, label: "Artists" },
     { path: "/about", icon: Info, label: "About" },
     { path: "/contact", icon: Mail, label: "Contact" },
+    { path: "/gallery", icon: Image, label: "Gallery" },
   ];
 
   if (user) {
@@ -52,17 +54,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
       {/* ── Top navbar ───────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Logo */}
+          {/* Brand name — no logo */}
           <div
             className="flex items-center gap-3 cursor-pointer shrink-0"
             onClick={() => navigate("/")}
           >
-            <img
-              src="/logo.png"
-              alt="TECHNOAAGAZ"
-              className="w-10 h-10 object-contain"
-            />
-            <span className="text-lg font-bold bg-linear-to-r from-navy to-gold bg-clip-text text-transparent hidden sm:block">
+            <span className="text-lg font-bold bg-linear-to-r from-navy to-gold bg-clip-text text-transparent">
               TECHNOAAGAZ
             </span>
           </div>

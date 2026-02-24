@@ -53,14 +53,6 @@ export interface VolunteerSignupData {
   confirmPassword: string;
 }
 
-export interface AdminSignupData {
-  secretCode: string;
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -69,7 +61,6 @@ interface AuthContextType {
   adminLogin: (email: string, password: string, secretCode: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   volunteerSignup: (data: VolunteerSignupData) => Promise<void>;
-  adminSignup: (data: AdminSignupData) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -158,16 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(res.data.user);
   };
 
-  const adminSignup = async (data: AdminSignupData) => {
-    const res = await api<{ data: { token: string; user: User } }>(
-      "/admin/signup/admin",
-      { method: "POST", body: data },
-    );
-    localStorage.setItem("ta_token", res.data.token);
-    setToken(res.data.token);
-    setUser(res.data.user);
-  };
-
   const logout = () => {
     localStorage.removeItem("ta_token");
     setToken(null);
@@ -184,7 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         adminLogin,
         register,
         volunteerSignup,
-        adminSignup,
         logout,
         refreshUser,
       }}

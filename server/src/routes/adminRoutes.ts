@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   volunteerSignup,
-  adminSignup,
   adminLogin,
   getAllUsers,
   getUsersByRole,
@@ -17,9 +16,6 @@ const router = Router();
 
 // Volunteer self-register with secret code (no auth needed)
 router.post("/signup/volunteer", volunteerSignup);
-
-// Admin self-register with secret code (no auth needed)
-router.post("/signup/admin", adminSignup);
 
 // Admin / volunteer login
 router.post("/login", adminLogin);

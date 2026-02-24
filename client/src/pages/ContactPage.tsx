@@ -81,23 +81,23 @@ const ContactPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-300 group">
                 <img
-                  src="/convenor.jpg"
-                  alt="Convenor"
-                  className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl object-cover border-3 border-gold/50 shadow-lg shadow-gold/20 group-hover:scale-105 transition-transform bg-gold/20 mb-4"
+                  src="/EventMgm/Convenor.jpg"
+                  alt="Convenor — Ishita Sarsar"
+                  className="w-40 h-48 sm:w-48 sm:h-56 rounded-2xl object-cover object-top border-3 border-gold/50 shadow-lg shadow-gold/20 group-hover:scale-105 transition-transform bg-gold/20 mb-4"
                 />
                 <p className="text-white font-bold text-lg">Convenor</p>
-                <a href="tel:+917357053102" className="text-gold text-sm hover:underline mt-1">
+                <p className="text-gold text-sm mt-1">Name : Ishita Sarsar</p>
+                <a href="tel:+917357053102" className="text-gold/70 text-sm hover:underline mt-1">
                   +91 73570 53102
                 </a>
               </div>
               <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-300 group">
-                <img
-                  src="/co-convenor.jpg"
-                  alt="Co-Convenor"
-                  className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl object-cover border-3 border-navy-light/50 shadow-lg shadow-navy/20 group-hover:scale-105 transition-transform bg-navy/30 mb-4"
-                />
+                <div className="w-40 h-48 sm:w-48 sm:h-56 rounded-2xl border-3 border-navy-light/50 shadow-lg shadow-navy/20 group-hover:scale-105 transition-transform bg-navy/30 mb-4 flex items-center justify-center">
+                  <span className="text-5xl font-bold text-navy-light/60">PS</span>
+                </div>
                 <p className="text-white font-bold text-lg">Co-Convenor</p>
-                <a href="tel:+917541841303" className="text-gold text-sm hover:underline mt-1">
+                <p className="text-gold text-sm mt-1">Name : Priyanshu Sharma</p>
+                <a href="tel:+917541841303" className="text-gold/70 text-sm hover:underline mt-1">
                   +91 75418 41303
                 </a>
               </div>

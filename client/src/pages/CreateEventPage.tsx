@@ -34,7 +34,7 @@ const CreateEventPage: React.FC = () => {
   const [form, setForm] = useState({
     title: "",
     category: "cultural",
-    cost: 0,
+    isPaid: false,
     venue: "",
     participationType: "solo",
     minTeamSize: 2,
@@ -67,7 +67,7 @@ const CreateEventPage: React.FC = () => {
         setForm({
           title: e.title,
           category: e.category,
-          cost: e.cost ?? 0,
+          isPaid: (e.cost ?? 0) > 0,
           venue: e.venue,
           participationType: e.participationType || "solo",
           minTeamSize: e.minTeamSize ?? 2,
@@ -86,7 +86,7 @@ const CreateEventPage: React.FC = () => {
     load();
   }, [id, isEdit, navigate]);
 
-  const update = (field: string, value: string | number) =>
+  const update = (field: string, value: string | number | boolean) =>
     setForm((p) => ({ ...p, [field]: value }));
 
   const addStudentCoordinator = () => {
@@ -119,7 +119,7 @@ const CreateEventPage: React.FC = () => {
     const body: Record<string, any> = {
       title: form.title,
       category: form.category,
-      cost: Number(form.cost),
+      cost: form.isPaid ? 1 : 0,
       venue: form.venue,
       participationType: form.participationType,
       date: form.date,
@@ -226,16 +226,38 @@ const CreateEventPage: React.FC = () => {
             </div>
           )}
 
-          {/* Cost + Venue */}
+          {/* Paid / Free + Venue */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Cost (₹)"
-              type="number"
-              min={0}
-              value={form.cost}
-              onChange={(e) => update("cost", parseInt(e.target.value) || 0)}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Event Type</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => update("isPaid", false)}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                    !form.isPaid
+                      ? "bg-green-500/15 border-green-500/30 text-green-400"
+                      : "bg-white/5 border-white/10 text-gray-500 hover:text-white"
+                  }`}
+                >
+                  Free
+                </button>
+                <button
+                  type="button"
+                  onClick={() => update("isPaid", true)}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                    form.isPaid
+                      ? "bg-gold/15 border-gold/30 text-gold"
+                      : "bg-white/5 border-white/10 text-gray-500 hover:text-white"
+                  }`}
+                >
+                  Paid
+                </button>
+              </div>
+              {form.isPaid && (
+                <p className="text-xs text-gray-500 mt-1.5">Pricing is set via environment config</p>
+              )}
+            </div>
             <Input
               label="Venue"
               placeholder="Main Auditorium"

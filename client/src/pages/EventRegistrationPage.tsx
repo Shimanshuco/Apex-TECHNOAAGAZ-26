@@ -82,18 +82,33 @@ const EventRegistrationPage: React.FC = () => {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [screenshotName, setScreenshotName] = useState("");
 
+  // Pricing from API
+  const [pricing, setPricing] = useState<{
+    apex: number;
+    otherEarly: number;
+    otherRegular: number;
+    earlyBirdDeadline: string;
+    isEarlyBird: boolean;
+  } | null>(null);
+
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api<{ data: EventDetail }>(`/events/${id}`);
-        setEvent(res.data);
+        const [eventRes, pricingRes] = await Promise.all([
+          api<{ data: EventDetail }>(`/events/${id}`),
+          api<{ data: { apex: number; otherEarly: number; otherRegular: number; earlyBirdDeadline: string; isEarlyBird: boolean } }>("/events/pricing"),
+        ]);
+        setEvent(eventRes.data);
+        setPricing(pricingRes.data);
         if (token) {
           try {
             const check = await api<{ registered: boolean; registration?: { paymentStatus: string } }>(
               `/events/${id}/check-registration`,
               { token }
             );
-            setAlreadyRegistered(check.registered);
+            // Don't block re-registration if payment was rejected
+            const isRejected = check.registration?.paymentStatus === "failed";
+            setAlreadyRegistered(check.registered && !isRejected);
             if (check.registration?.paymentStatus) {
               setRegistrationPaymentStatus(check.registration.paymentStatus);
             }
@@ -113,8 +128,12 @@ const EventRegistrationPage: React.FC = () => {
   const isTeamEvent = event?.participationType === "team";
   const isPaidEvent = event ? event.cost > 0 : false;
 
-  // Dynamic pricing: Apex = ₹149, Other = ₹249
-  const dynamicPrice = user?.university === "apex_university" ? 149 : 249;
+  // Dynamic pricing from API
+  const dynamicPrice = (() => {
+    if (!pricing) return 0;
+    if (user?.university === "apex_university") return pricing.apex;
+    return pricing.isEarlyBird ? pricing.otherEarly : pricing.otherRegular;
+  })();
   const displayPrice = isPaidEvent ? dynamicPrice : 0;
 
   /* ── Handle screenshot file select ── */
@@ -440,8 +459,10 @@ const EventRegistrationPage: React.FC = () => {
                   </div>
                   <p className="text-xs text-gray-500">
                     {user?.university === "apex_university"
-                      ? "Apex University students get a discounted rate of ₹149"
-                      : "Registration fee for external participants is ₹249"}
+                      ? `Apex University students: ₹${pricing?.apex ?? 149}`
+                      : pricing?.isEarlyBird
+                      ? `Early Bird (before ${pricing?.earlyBirdDeadline ?? "28 Feb"}): ₹${pricing?.otherEarly ?? 300}`
+                      : `Registration fee for external participants: ₹${pricing?.otherRegular ?? 350}`}
                   </p>
                 </div>
 

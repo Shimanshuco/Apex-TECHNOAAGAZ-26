@@ -5,6 +5,7 @@ import { Card, Button } from "../components";
 import { Input } from "../components/Input";
 import { Select } from "../components/Select";
 import AnimatedBackground from "../components/AnimatedBackground";
+import AuthNavbar from "../components/AuthNavbar";
 
 const GENDER_OPTIONS = [
   { value: "", label: "Select Gender" },
@@ -91,7 +92,8 @@ const VolunteerSignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-16 pb-12 relative">
+      <AuthNavbar />
       <AnimatedBackground variant="cyan" />
 
       <div className="relative z-10 w-full max-w-md">
@@ -214,7 +216,7 @@ const VolunteerSignupPage: React.FC = () => {
           <div className="mt-6 text-center text-sm text-gray-400">
             Already a volunteer?{" "}
             <Link
-              to="/volunteer/signup"
+              to="/admin/login"
               className="text-gold hover:text-gold-light transition-colors"
             >
               Login here

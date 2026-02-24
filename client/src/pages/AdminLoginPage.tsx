@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Card, Button } from "../components";
 import { Input } from "../components/Input";
 import AnimatedBackground from "../components/AnimatedBackground";
+import AuthNavbar from "../components/AuthNavbar";
 
 const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,7 +36,8 @@ const AdminLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-14 relative">
+      <AuthNavbar />
       <AnimatedBackground variant="cyan" />
 
       <div className="relative z-10 w-full max-w-md">
@@ -108,17 +110,7 @@ const AdminLoginPage: React.FC = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-400">
-            Need an account?{" "}
-            <Link
-              to="/admin/signup"
-              className="text-gold hover:text-gold-light transition-colors"
-            >
-              Sign up here
-            </Link>
-          </div>
-
-          <div className="mt-3 text-center text-sm text-gray-500">
+          <div className="mt-6 text-center text-sm text-gray-500">
             <Link
               to="/login"
               className="hover:text-gold transition-colors"

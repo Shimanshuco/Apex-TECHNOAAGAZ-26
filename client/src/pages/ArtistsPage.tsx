@@ -341,39 +341,43 @@ const ArtistModal: React.FC<{ artist: Artist | null; onClose: () => void }> = ({
   if (!artist) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 modal-backdrop" onClick={onClose}>
+    <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop" onClick={onClose}>
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
       <div
-        className="relative z-10 w-full max-w-2xl bg-gray-900/95 border border-gold/20 rounded-2xl overflow-hidden shadow-2xl shadow-gold/10 modal-card"
+        className="relative z-10 w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-gray-900/95 border border-gold/20 rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl shadow-gold/10 modal-card flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-gold/40 transition-all"
+          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-gold/40 transition-all"
         >
           <X size={18} />
         </button>
 
-        <div className="relative h-72 sm:h-80 overflow-hidden">
-          <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-linear-to-t from-gray-900 via-gray-900/40 to-transparent" />
-          <div className="absolute bottom-4 left-6 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gold/20 border-2 border-gold/40 flex items-center justify-center backdrop-blur-sm">
-              <Star size={20} className="text-gold" />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">{artist.name}</h2>
-              <p className="text-gold/80 text-sm flex items-center gap-1"><Music size={14} /> Featured Artist</p>
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1">
+          <div className="relative h-48 sm:h-72 md:h-80 overflow-hidden shrink-0">
+            <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-linear-to-t from-gray-900 via-gray-900/40 to-transparent" />
+            <div className="absolute bottom-3 left-4 sm:bottom-4 sm:left-6 flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gold/20 border-2 border-gold/40 flex items-center justify-center backdrop-blur-sm">
+                <Star size={18} className="text-gold sm:hidden" />
+                <Star size={20} className="text-gold hidden sm:block" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">{artist.name}</h2>
+                <p className="text-gold/80 text-xs sm:text-sm flex items-center gap-1"><Music size={12} className="sm:hidden" /><Music size={14} className="hidden sm:block" /> Featured Artist</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-6 sm:p-8">
-          <p className="text-gray-300 leading-relaxed text-base whitespace-pre-line">{artist.description}</p>
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex-1 h-px bg-linear-to-r from-transparent via-gold/30 to-transparent" />
-            <Sparkles size={14} className="text-gold/40" />
-            <div className="flex-1 h-px bg-linear-to-r from-transparent via-gold/30 to-transparent" />
+          <div className="p-4 sm:p-6 md:p-8">
+            <p className="text-gray-300 leading-relaxed text-sm sm:text-base whitespace-pre-line">{artist.description}</p>
+            <div className="mt-4 sm:mt-6 flex items-center gap-3">
+              <div className="flex-1 h-px bg-linear-to-r from-transparent via-gold/30 to-transparent" />
+              <Sparkles size={14} className="text-gold/40" />
+              <div className="flex-1 h-px bg-linear-to-r from-transparent via-gold/30 to-transparent" />
+            </div>
           </div>
         </div>
       </div>

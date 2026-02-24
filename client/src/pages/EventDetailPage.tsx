@@ -92,11 +92,33 @@ const EventDetailPage: React.FC = () => {
   const [teamError, setTeamError] = useState("");
   const [teamSuccess, setTeamSuccess] = useState(false);
 
+  // Dynamic pricing
+  const [pricing, setPricing] = useState<{
+    apex: number;
+    otherEarly: number;
+    otherRegular: number;
+    isEarlyBird: boolean;
+  } | null>(null);
+
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api<{ data: EventDetail }>(`/events/${id}`);
         setEvent(res.data);
+
+        // Fetch dynamic pricing
+        try {
+          const p = await api<{
+            data: {
+              apex: number;
+              otherEarly: number;
+              otherRegular: number;
+              earlyBirdDeadline: string;
+              isEarlyBird: boolean;
+            };
+          }>("/events/pricing");
+          setPricing(p.data);
+        } catch { /* ignore */ }
 
         if (user) {
           try {
@@ -754,7 +776,22 @@ const EventDetailPage: React.FC = () => {
               <div className="flex items-center gap-3 text-gray-300">
                 <IndianRupee size={18} className="text-gold shrink-0" />
                 {event.cost > 0 ? (
-                  <span className="text-white font-semibold text-lg">₹{event.cost}</span>
+                  pricing ? (
+                    <div className="flex flex-col">
+                      {user?.university === "apex_university" ? (
+                        <span className="text-white font-semibold text-lg">₹{pricing.apex}</span>
+                      ) : (
+                        <span className="text-white font-semibold text-lg">
+                          ₹{pricing.isEarlyBird ? pricing.otherEarly : pricing.otherRegular}
+                          {pricing.isEarlyBird && (
+                            <span className="ml-2 text-xs text-green-400 font-normal">Early Bird</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-white font-semibold text-lg">Paid Event</span>
+                  )
                 ) : (
                   <span className="text-green-400 font-semibold">Free Entry</span>
                 )}
@@ -770,6 +807,20 @@ const EventDetailPage: React.FC = () => {
                 >
                   Edit Event
                 </Button>
+              ) : alreadyRegistered && registration?.paymentStatus === "failed" ? (
+                <div className="space-y-2">
+                  <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 font-semibold text-sm">
+                    <AlertCircle size={16} /> Payment Rejected
+                  </div>
+                  <Button
+                    variant="neon"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleRegister}
+                  >
+                    Register Again
+                  </Button>
+                </div>
               ) : alreadyRegistered ? (
                 <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 font-semibold">
                   <ShieldCheck size={18} /> Already Registered

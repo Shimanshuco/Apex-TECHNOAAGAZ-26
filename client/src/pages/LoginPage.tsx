@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Card, Button } from "../components";
 import { Input } from "../components/Input";
 import AnimatedBackground from "../components/AnimatedBackground";
+import AuthNavbar from "../components/AuthNavbar";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,7 +29,8 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-14 relative">
+      <AuthNavbar />
       {/* Animated BG */}
       <AnimatedBackground variant="cyan" />
 

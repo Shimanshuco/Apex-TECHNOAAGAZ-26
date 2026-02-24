@@ -42,8 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, socialLinks = [], activeNav
         fixed left-0 top-0 h-full z-40
         bg-transparent
         hidden md:flex
-        w-28 py-6 pt-36 px-2
-        flex-col items-center
+        w-28 py-6 pt-16 px-2
+        flex-col items-center justify-center
         ${className}
       `}>
         <div className="flex flex-col gap-1 flex-1">

@@ -44,6 +44,19 @@ const EventsPage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("");
+  const [pricing, setPricing] = useState<{
+    apex: number;
+    otherEarly: number;
+    otherRegular: number;
+    isEarlyBird: boolean;
+  } | null>(null);
+
+  // Fetch pricing once on mount
+  useEffect(() => {
+    api<{ data: { apex: number; otherEarly: number; otherRegular: number; isEarlyBird: boolean } }>("/events/pricing")
+      .then((res) => setPricing(res.data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -62,6 +75,13 @@ const EventsPage: React.FC = () => {
     };
     fetchEvents();
   }, [activeCategory]);
+
+  // Compute display price for a paid event
+  const getDisplayPrice = (): string => {
+    if (!pricing) return "Paid";
+    if (user?.university === "apex_university") return `₹${pricing.apex}`;
+    return pricing.isEarlyBird ? `₹${pricing.otherEarly}` : `₹${pricing.otherRegular}`;
+  };
 
   return (
     <>
@@ -181,9 +201,8 @@ const EventsPage: React.FC = () => {
 
                   {/* Cost */}
                   <div className="flex items-center gap-2 font-semibold">
-                    <span className="text-gold/70 text-xs">₹</span>
                     {event.cost > 0 ? (
-                      <span className="text-white">₹{event.cost}</span>
+                      <span className="text-white">{getDisplayPrice()}</span>
                     ) : (
                       <span className="text-green-400">Free</span>
                     )}

@@ -62,23 +62,6 @@ export const volunteerSignupSchema = z
   });
 
 /* ────────────────────────────────────────────────────────────
-   3. Admin Signup
-   Fields: Secret Code, Name, Email, Password, confirmPassword
-   ──────────────────────────────────────────────────────────── */
-export const adminSignupSchema = z
-  .object({
-    secretCode:      z.string().min(1, "Secret code is required"),
-    name:            z.string().min(2, "Name must be at least 2 characters"),
-    email:           z.string().email("Invalid email"),
-    password:        z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(1, "Confirm your password"),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-/* ────────────────────────────────────────────────────────────
    4. Login (shared by all roles)
    ──────────────────────────────────────────────────────────── */
 export const loginSchema = z.object({

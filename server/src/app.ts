@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 
 // Route imports
 import authRoutes from "./routes/authRoutes";
@@ -44,6 +44,17 @@ app.use("/api/events", eventRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/artists", artistRoutes);
 app.use("/api/payments", paymentRoutes);
+
+/* ── Global error handler ───────────────────────────── */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("🔥 Unhandled error:", err);
+  const message =
+    err instanceof Error ? err.message : "Internal server error";
+  if (!res.headersSent) {
+    res.status(500).json({ success: false, message });
+  }
+});
 
 /* ── 404 catch-all ──────────────────────────────────── */
 app.use((_req, res) => {

@@ -15,6 +15,7 @@ import {
   ContactIcon,
   AboutIcon,
   ArtistIcon,
+  GalleryIcon,
   WebIcon,
   LinkedInIcon,
   YoutubeIcon,
@@ -27,6 +28,7 @@ const routeMap: Record<string, string> = {
   artists: '/artists',
   about: '/about',
   contact: '/contact',
+  gallery: '/gallery',
   web: '/events',
 };
 
@@ -41,6 +43,7 @@ const HomePage: React.FC = () => {
     { id: 'artists', icon: ArtistIcon, label: 'Artists' },
     { id: 'about', icon: AboutIcon, label: 'About' },
     { id: 'contact', icon: ContactIcon, label: 'Contact' },
+    { id: 'gallery', icon: GalleryIcon, label: 'Gallery' },
   ];
 
   const socialLinks = [
@@ -68,14 +71,7 @@ const HomePage: React.FC = () => {
         }}
       />
 
-      {/* Logo — fixed top-left, part of main layout (not sidebar) */}
-      <div className="fixed top-3 left-3 md:top-6 md:left-6 z-50 pointer-events-auto">
-        <img
-          src="/logo.png"
-          alt="TECHNOAAGAZ Logo"
-          className="w-16 h-16 md:w-28 md:h-28 lg:w-32 lg:h-32 object-contain drop-shadow-[0_0_20px_rgba(0,255,255,0.6)]"
-        />
-      </div>
+
 
       {/* Neon Light Beams */}
       <div className="fixed inset-0 z-5 pointer-events-none">

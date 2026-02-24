@@ -445,12 +445,12 @@ const AdminDashboardPage: React.FC = () => {
       )}
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-6 w-fit">
+      <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-6 overflow-x-auto scrollbar-hide">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap shrink-0 ${
               activeTab === t.key
                 ? "bg-gold/15 text-gold shadow-sm shadow-gold/10"
                 : "text-gray-500 hover:text-white hover:bg-white/5"
