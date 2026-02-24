@@ -13,7 +13,6 @@ import {
   HomeIcon,
   EventIcon,
   ContactIcon,
-  AboutIcon,
   ArtistIcon,
   GalleryIcon,
   WebIcon,

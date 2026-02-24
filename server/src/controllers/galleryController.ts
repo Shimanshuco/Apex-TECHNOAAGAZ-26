@@ -145,7 +145,7 @@ export const getGalleryImages = async (req: Request, res: Response): Promise<voi
     const url = `https://www.googleapis.com/drive/v3/files?q='${folder.driveFolderId}'+in+parents+and+mimeType+contains+'image'&key=${apiKey}&fields=files(id,name,mimeType,thumbnailLink)&pageSize=100&orderBy=name`;
 
     const response = await fetch(url);
-    const data = await response.json();
+    const data = await response.json() as { files?: { id: string; name: string; mimeType: string; thumbnailLink?: string }[] };
 
     if (!response.ok) {
       console.error("Google Drive API error:", data);
