@@ -1,41 +1,72 @@
-import { google } from "googleapis";
-import { Readable } from "stream";
+import crypto from "crypto";
 import { ENV } from "../config/env";
 
 /**
  * Upload a base-64 encoded image to Google Drive and return a
  * publicly-viewable link.
  *
- * File is placed in the Drive folder specified by GOOGLE_DRIVE_FOLDER_ID.
- * Naming convention:  Name_EventTitle_Date  (e.g. John_Hackathon_2026-03-15)
+ * Uses the raw Google Drive REST API + a self-signed JWT — NO heavy
+ * `googleapis` package needed (saves ~50 MB, works on Vercel).
  *
- * Prerequisites
- * ─────────────
- * 1. A Google Cloud project with the Drive API enabled.
- * 2. A Service Account whose JSON key provides:
- *    • GOOGLE_SERVICE_ACCOUNT_EMAIL   (client_email  from JSON)
- *    • GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY (private_key from JSON)
- * 3. The target Drive folder must be shared with the service-account email
- *    (Editor access).
+ * Naming convention:  Name_EventTitle_Date  (e.g. John_Hackathon_2026-03-15)
  */
 
-/* ── Auth singleton ── */
-let driveInstance: ReturnType<typeof google.drive> | null = null;
+/* ═══════════════════════════════════════════════════════
+   JWT signing for Google Service-Account (RS256)
+   ═══════════════════════════════════════════════════════ */
 
-function getDrive() {
-  if (driveInstance) return driveInstance;
+let cachedToken: { token: string; expiresAt: number } | null = null;
 
-  const auth = new google.auth.JWT({
-    email: ENV.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY,
-    scopes: ["https://www.googleapis.com/auth/drive.file"],
+async function getAccessToken(): Promise<string> {
+  // Reuse token if still valid (with 60s buffer)
+  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
+    return cachedToken.token;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: ENV.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    scope: "https://www.googleapis.com/auth/drive.file",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const encode = (obj: object) =>
+    Buffer.from(JSON.stringify(obj)).toString("base64url");
+
+  const unsigned = `${encode(header)}.${encode(payload)}`;
+  const signature = crypto
+    .createSign("RSA-SHA256")
+    .update(unsigned)
+    .sign(ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, "base64url");
+
+  const jwt = `${unsigned}.${signature}`;
+
+  // Exchange JWT for an access token
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
   });
 
-  driveInstance = google.drive({ version: "v3", auth });
-  return driveInstance;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Google token exchange failed (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  cachedToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return data.access_token;
 }
 
-/* ── Helpers ── */
+/* ═══════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════ */
 
 /** Sanitise a string so it's safe for a filename */
 const sanitise = (s: string) =>
@@ -43,16 +74,16 @@ const sanitise = (s: string) =>
 
 /** Convert a base-64 data-URL (or raw base-64 string) to a Buffer */
 function base64ToBuffer(base64: string): { buffer: Buffer; mimeType: string } {
-  // data:image/jpeg;base64,/9j/4AAQ...
   const match = base64.match(/^data:([^;]+);base64,(.+)$/s);
   if (match) {
     return { buffer: Buffer.from(match[2], "base64"), mimeType: match[1] };
   }
-  // Fall back: assume image/jpeg
   return { buffer: Buffer.from(base64, "base64"), mimeType: "image/jpeg" };
 }
 
-/* ── Main export ── */
+/* ═══════════════════════════════════════════════════════
+   Main export
+   ═══════════════════════════════════════════════════════ */
 
 export interface UploadOptions {
   /** Base-64 encoded image (with or without data-URL prefix) */
@@ -77,35 +108,73 @@ export async function uploadScreenshotToDrive(opts: UploadOptions): Promise<stri
   }
 
   const { buffer, mimeType } = base64ToBuffer(base64Image);
+  const accessToken = await getAccessToken();
 
   // Build file name: Name_EventTitle_Date
-  const datePart = eventDate.split("T")[0]; // "2026-03-15"
+  const datePart = eventDate.split("T")[0];
   const fileName = `${sanitise(userName)}_${sanitise(eventTitle)}_${datePart}`;
   const ext = mimeType === "image/png" ? ".png" : ".jpg";
+  const fullName = `${fileName}${ext}`;
 
-  const drive = getDrive();
-
-  // Upload
-  const res = await drive.files.create({
-    requestBody: {
-      name: `${fileName}${ext}`,
-      parents: [ENV.GOOGLE_DRIVE_FOLDER_ID],
-    },
-    media: {
-      mimeType,
-      body: Readable.from(buffer),
-    },
-    fields: "id",
+  /* ── Step 1: Upload via multipart (metadata + media) ── */
+  const boundary = "----DriveUploadBoundary" + Date.now();
+  const metadata = JSON.stringify({
+    name: fullName,
+    parents: [ENV.GOOGLE_DRIVE_FOLDER_ID],
   });
 
-  const fileId = res.data.id;
+  // Build multipart body manually
+  const parts: Buffer[] = [];
+  parts.push(Buffer.from(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`
+  ));
+  parts.push(Buffer.from(
+    `--${boundary}\r\nContent-Type: ${mimeType}\r\nContent-Transfer-Encoding: binary\r\n\r\n`
+  ));
+  parts.push(buffer);
+  parts.push(Buffer.from(`\r\n--${boundary}--`));
+
+  const body = Buffer.concat(parts);
+
+  const uploadRes = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+        "Content-Length": String(body.length),
+      },
+      body,
+    },
+  );
+
+  if (!uploadRes.ok) {
+    const errText = await uploadRes.text();
+    throw new Error(`Drive upload failed (${uploadRes.status}): ${errText}`);
+  }
+
+  const uploadData = (await uploadRes.json()) as { id?: string };
+  const fileId = uploadData.id;
   if (!fileId) throw new Error("Drive upload succeeded but no file ID returned");
 
-  // Make the file publicly viewable (anyone with link)
-  await drive.permissions.create({
-    fileId,
-    requestBody: { role: "reader", type: "anyone" },
-  });
+  /* ── Step 2: Make publicly viewable ── */
+  const permRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role: "reader", type: "anyone" }),
+    },
+  );
+
+  if (!permRes.ok) {
+    console.error("Failed to set Drive permissions:", await permRes.text());
+    // File was uploaded — return link anyway, it'll just require login to view
+  }
 
   // Return a direct-viewable image URL (same pattern as gallery)
   return `https://lh3.googleusercontent.com/d/${fileId}=s1200`;

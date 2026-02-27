@@ -11,5 +11,6 @@ export { default as HeroSection, type HeroSectionProps } from './HeroSection';
 export { Input, type InputProps } from './Input';
 export { Select, type SelectProps } from './Select';
 export { Textarea, type TextareaProps } from './Textarea';
+export { MarkdownEditor, type MarkdownEditorProps } from './MarkdownEditor';
 export { default as PageLayout } from './PageLayout';
 export { default as ProtectedRoute } from './ProtectedRoute';
