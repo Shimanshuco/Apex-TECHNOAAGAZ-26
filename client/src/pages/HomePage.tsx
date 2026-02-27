@@ -97,11 +97,11 @@ const HomePage: React.FC = () => {
         </div>
         {/* Right group: logos + auth + toggle */}
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg px-1.5 py-1 shadow-lg shadow-black/30">
-            <img src="/Logo/SWW.png" alt="SWW" className="h-8 sm:h-10 w-auto" />
+          <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg px-1.4 py-0.9 shadow-lg shadow-black/30">
+            <img src="/Logo/SWW.png" alt="SWW" className="h-13 sm:h-12 w-auto" />
           </div>
-          <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg px-1.5 py-1 shadow-lg shadow-black/30">
-            <img src="/Logo/ScholarZ.png" alt="ScholarZ" className="h-8 sm:h-10 w-auto" />
+          <div className="flex items-center bg-white/80 backdrop-blur-sm rounded-lg px-1.5 py-1 shadow-lg shadow-black/30">
+            <img src="/Logo/ScholarZ.png" alt="ScholarZ" className="h-7 sm:h-8 w-auto" />
           </div>
 
           {/* Menu toggle */}
