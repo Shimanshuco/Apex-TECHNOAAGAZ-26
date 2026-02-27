@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Card, Button } from "../components";
 import { Input } from "../components/Input";
 import { Select } from "../components/Select";
-import { Textarea } from "../components/Textarea";
+import { MarkdownEditor } from "../components/MarkdownEditor";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 
 const CATEGORY_OPTIONS = [
@@ -291,35 +291,35 @@ const CreateEventPage: React.FC = () => {
           />
 
           {/* Description (Markdown) */}
-          <Textarea
-            label="Description (Markdown supported)"
-            placeholder="Write the event description here... Supports **bold**, *italic*, lists, etc."
+          <MarkdownEditor
+            label="Description"
+            placeholder="Write the event description here..."
             value={form.description}
-            onChange={(e) => update("description", e.target.value)}
+            onChange={(v) => update("description", v)}
           />
 
           {/* Rules (Markdown) */}
-          <Textarea
-            label="Rules (Markdown supported)"
-            placeholder="Event rules... Supports **bold**, *italic*, numbered lists, etc."
+          <MarkdownEditor
+            label="Rules"
+            placeholder="Event rules..."
             value={form.rules}
-            onChange={(e) => update("rules", e.target.value)}
+            onChange={(v) => update("rules", v)}
           />
 
           {/* Judgement Criterion (Markdown) */}
-          <Textarea
-            label="Judgement Criterion (Markdown supported)"
-            placeholder="How participants will be judged... Supports **bold**, *italic*, lists, etc."
+          <MarkdownEditor
+            label="Judgement Criterion"
+            placeholder="How participants will be judged..."
             value={form.judgementCriterion}
-            onChange={(e) => update("judgementCriterion", e.target.value)}
+            onChange={(v) => update("judgementCriterion", v)}
           />
 
           {/* Prizes (Markdown) */}
-          <Textarea
-            label="Prizes (Markdown supported)"
-            placeholder="Prize details... Supports **bold**, *italic*, lists, etc."
+          <MarkdownEditor
+            label="Prizes"
+            placeholder="Prize details..."
             value={form.prizes}
-            onChange={(e) => update("prizes", e.target.value)}
+            onChange={(v) => update("prizes", v)}
           />
 
           {/* ── Student Coordinators ── */}
