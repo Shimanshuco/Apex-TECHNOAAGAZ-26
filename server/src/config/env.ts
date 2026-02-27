@@ -17,4 +17,9 @@ export const ENV = {
   PRICE_OTHER_EARLY: Number(process.env.PRICE_OTHER_EARLY) || 300,
   PRICE_OTHER_REGULAR: Number(process.env.PRICE_OTHER_REGULAR) || 350,
   EARLY_BIRD_DEADLINE: process.env.EARLY_BIRD_DEADLINE || "2026-02-28",
+
+  // Google Drive — Payment Screenshots
+  GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID || "",
+  GOOGLE_SERVICE_ACCOUNT_EMAIL: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "",
+  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
 } as const;

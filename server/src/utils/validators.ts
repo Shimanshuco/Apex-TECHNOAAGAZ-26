@@ -111,6 +111,7 @@ const coordinatorSchema = z.object({
 
 export const eventSchema = z.object({
   title:                z.string().min(2, "Title is required"),
+  description:          z.string().optional(),
   category:             z.enum(["cultural", "literary", "trending_event", "technical"], {
     message: "Category is required",
   }),
@@ -126,6 +127,7 @@ export const eventSchema = z.object({
   studentCoordinators:  z.array(coordinatorSchema).optional().default([]),
   facultyCoordinators:  z.array(coordinatorSchema).optional().default([]),
   rules:                z.string().optional(),
+  judgementCriterion:   z.string().optional(),
   prizes:               z.string().optional(),
 });
 

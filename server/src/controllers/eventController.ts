@@ -4,6 +4,7 @@ import { User } from "../models/User";
 import { Registration } from "../models/Registration";
 import { eventSchema, eventRegistrationSchema } from "../utils/validators";
 import { ENV } from "../config/env";
+import { uploadScreenshotToDrive } from "../utils/driveUploader";
 
 /**
  * GET /api/events/pricing
@@ -212,12 +213,30 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
         return;
       }
 
+      // Upload screenshot to Google Drive → store the link (not the image)
+      let driveLink: string;
+      try {
+        driveLink = await uploadScreenshotToDrive({
+          base64Image: paymentScreenshot,
+          userName: user.name,
+          eventTitle: event.title,
+          eventDate: event.date.toISOString(),
+        });
+      } catch (uploadErr) {
+        console.error("Drive upload error:", uploadErr);
+        res.status(500).json({
+          success: false,
+          message: "Failed to upload payment screenshot. Please try again.",
+        });
+        return;
+      }
+
       const registration = await Registration.create({
         event: event._id,
         user: req.userId,
         teamMembers: [],
         paymentStatus: "pending",
-        paymentScreenshot,
+        paymentScreenshot: driveLink,
         amount,
       });
 
@@ -244,8 +263,21 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     // Update user's registered events
     if (!user.registeredEvents.map(String).includes(String(event._id))) {
       user.registeredEvents.push(event._id as any);
-      await user.save();
     }
+
+    // Generate QR for "other" university users on their first event registration
+    if (user.university === "other" && !user.qrCode) {
+      const { generateQR } = await import("../utils/qrGenerator");
+      const qrCode = await generateQR({
+        userId: String(user._id),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      });
+      user.qrCode = qrCode;
+    }
+
+    await user.save();
 
     res.json({
       success: true,

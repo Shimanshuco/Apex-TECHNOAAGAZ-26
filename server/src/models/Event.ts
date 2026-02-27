@@ -19,6 +19,7 @@ export interface ICoordinator {
 /* ── Document interface ── */
 export interface IEvent extends Document {
   title: string;
+  description?: string;                  // markdown
   category: EventCategory;
   cost: number;                          // ₹ entry fee (0 = free)
   venue: string;
@@ -29,8 +30,9 @@ export interface IEvent extends Document {
   image?: string;                        // URL / link (optional)
   studentCoordinators: ICoordinator[];
   facultyCoordinators: ICoordinator[];
-  rules?: string;
-  prizes?: string;
+  rules?: string;                        // markdown
+  judgementCriterion?: string;           // markdown
+  prizes?: string;                       // markdown
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -46,6 +48,7 @@ const coordinatorSubDoc = {
 const eventSchema = new Schema<IEvent>(
   {
     title: { type: String, required: true, trim: true },
+    description:       { type: String },        // markdown
     category: {
       type: String,
       enum: ["cultural", "literary", "trending_event", "technical"],
@@ -64,8 +67,9 @@ const eventSchema = new Schema<IEvent>(
     image:             { type: String },        // optional link
     studentCoordinators: [coordinatorSubDoc],
     facultyCoordinators: [coordinatorSubDoc],
-    rules:             { type: String },
-    prizes:            { type: String },
+    rules:             { type: String },        // markdown
+    judgementCriterion: { type: String },        // markdown
+    prizes:            { type: String },         // markdown
     isActive:          { type: Boolean, default: true },
     createdBy:         { type: Schema.Types.ObjectId, ref: "User", required: true },
   },

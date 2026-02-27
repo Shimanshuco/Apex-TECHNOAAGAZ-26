@@ -130,15 +130,18 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       address,
     });
 
-    // Generate QR
-    const qrCode = await generateQR({
-      userId: String(user._id),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    });
-    user.qrCode = qrCode;
-    await user.save();
+    // Generate QR — only for apex_university users at signup.
+    // "other" university users get their QR after first event registration.
+    if (university === "apex_university") {
+      const qrCode = await generateQR({
+        userId: String(user._id),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      });
+      user.qrCode = qrCode;
+      await user.save();
+    }
 
     // Token
     const token = signToken({ id: String(user._id), role: user.role });

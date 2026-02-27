@@ -212,6 +212,18 @@ export const approvePayment = async (req: Request, res: Response): Promise<void>
     const user = await User.findById(reg.user);
     if (user && !user.registeredEvents.map(String).includes(String(reg.event))) {
       user.registeredEvents.push(reg.event as any);
+
+      // Generate QR for "other" university users on their first approved registration
+      if (user.university === "other" && !user.qrCode) {
+        const qrCode = await generateQR({
+          userId: String(user._id),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        });
+        user.qrCode = qrCode;
+      }
+
       await user.save();
     }
 

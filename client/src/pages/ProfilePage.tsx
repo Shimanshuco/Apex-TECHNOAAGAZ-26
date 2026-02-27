@@ -517,6 +517,13 @@ const ProfilePage: React.FC = () => {
                   className="w-48 h-48 rounded-xl border-2 border-gold/30 bg-white p-2"
                 />
               </div>
+            ) : user.university === "other" ? (
+              <div className="flex flex-col justify-center items-center h-48 rounded-xl border border-dashed border-yellow-600/40 bg-yellow-500/5 px-4">
+                <p className="text-yellow-400 text-sm text-center font-medium mb-1">No QR code yet</p>
+                <p className="text-gray-500 text-xs text-center">
+                  Your QR code will be generated once you register for at least one event.
+                </p>
+              </div>
             ) : (
               <div className="flex justify-center items-center h-48 rounded-xl border border-dashed border-gray-700">
                 <p className="text-gray-600 text-sm">No QR code generated</p>
