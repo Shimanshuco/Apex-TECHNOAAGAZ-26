@@ -214,28 +214,24 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
         return;
       }
 
-      // Try uploading screenshot to Google Drive; fall back to base64 in DB
-      let screenshotValue: string = paymentScreenshot; // default = raw base64
+      // Upload screenshot to Google Drive → store the Drive link in DB
+      let screenshotValue: string;
       try {
-        if (
-          ENV.GOOGLE_DRIVE_FOLDER_ID &&
-          ENV.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-          ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
-        ) {
-          const { uploadScreenshotToDrive } = await import("../utils/driveUploader");
-          screenshotValue = await uploadScreenshotToDrive({
-            base64Image: paymentScreenshot,
-            userName: user.name,
-            eventTitle: event.title,
-            eventDate: event.date.toISOString(),
-          });
-          console.log("Screenshot uploaded to Drive successfully");
-        } else {
-          console.warn("Google Drive credentials not configured — storing screenshot as base64");
-        }
-      } catch (uploadErr) {
-        // Non-fatal: fall back to storing the base64 image directly
-        console.error("Drive upload failed, storing base64 instead:", uploadErr);
+        const { uploadScreenshotToDrive } = await import("../utils/driveUploader");
+        screenshotValue = await uploadScreenshotToDrive({
+          base64Image: paymentScreenshot,
+          userName: user.name,
+          eventTitle: event.title,
+          eventDate: event.date.toISOString(),
+        });
+        console.log("Screenshot uploaded to Drive:", screenshotValue);
+      } catch (uploadErr: any) {
+        console.error("Drive upload error:", uploadErr);
+        res.status(500).json({
+          success: false,
+          message: `Failed to upload screenshot: ${uploadErr.message || "Unknown error"}. Please contact the admin.`,
+        });
+        return;
       }
 
       const registration = await Registration.create({

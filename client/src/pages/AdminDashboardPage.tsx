@@ -989,24 +989,26 @@ const AdminDashboardPage: React.FC = () => {
 
       {/* ── Screenshot Preview Modal ── */}
       {previewScreenshot && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4" onClick={() => setPreviewScreenshot(null)}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={() => setPreviewScreenshot(null)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div className="relative z-10 max-w-2xl max-h-[85vh] overflow-auto rounded-2xl border border-white/10 shadow-2xl">
+          <div className="relative z-10 max-w-2xl max-h-[85vh] overflow-auto rounded-2xl border border-white/10 shadow-2xl bg-gray-900">
             <img src={previewScreenshot} alt="Payment screenshot" className="w-full h-auto" />
             <div className="absolute top-3 right-3 flex gap-2">
-              {/* Open in new tab (works for both Drive URLs and base64) */}
-              <a
-                href={previewScreenshot}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="p-2 rounded-full bg-black/70 hover:bg-gold/80 transition-colors"
-                title="Open full image in new tab"
-              >
-                <Eye size={18} className="text-white" />
-              </a>
+              {/* Open in new tab — only for Drive URLs (https), hide for base64 */}
+              {previewScreenshot.startsWith("http") && (
+                <a
+                  href={previewScreenshot}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2 rounded-full bg-black/70 hover:bg-gold/80 transition-colors"
+                  title="Open full image in new tab"
+                >
+                  <Eye size={18} className="text-white" />
+                </a>
+              )}
               <button
-                onClick={() => setPreviewScreenshot(null)}
+                onClick={(e) => { e.stopPropagation(); setPreviewScreenshot(null); }}
                 className="p-2 rounded-full bg-black/70 hover:bg-red-500/80 transition-colors"
               >
                 <X size={18} className="text-white" />
