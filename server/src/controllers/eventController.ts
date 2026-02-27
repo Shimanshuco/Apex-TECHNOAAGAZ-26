@@ -214,23 +214,28 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
         return;
       }
 
-      // Upload screenshot to Google Drive → store the link (not the image)
-      let driveLink: string;
+      // Try uploading screenshot to Google Drive; fall back to base64 in DB
+      let screenshotValue: string = paymentScreenshot; // default = raw base64
       try {
-        const { uploadScreenshotToDrive } = await import("../utils/driveUploader");
-        driveLink = await uploadScreenshotToDrive({
-          base64Image: paymentScreenshot,
-          userName: user.name,
-          eventTitle: event.title,
-          eventDate: event.date.toISOString(),
-        });
+        if (
+          ENV.GOOGLE_DRIVE_FOLDER_ID &&
+          ENV.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+          ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+        ) {
+          const { uploadScreenshotToDrive } = await import("../utils/driveUploader");
+          screenshotValue = await uploadScreenshotToDrive({
+            base64Image: paymentScreenshot,
+            userName: user.name,
+            eventTitle: event.title,
+            eventDate: event.date.toISOString(),
+          });
+          console.log("Screenshot uploaded to Drive successfully");
+        } else {
+          console.warn("Google Drive credentials not configured — storing screenshot as base64");
+        }
       } catch (uploadErr) {
-        console.error("Drive upload error:", uploadErr);
-        res.status(500).json({
-          success: false,
-          message: "Failed to upload payment screenshot. Please try again.",
-        });
-        return;
+        // Non-fatal: fall back to storing the base64 image directly
+        console.error("Drive upload failed, storing base64 instead:", uploadErr);
       }
 
       const registration = await Registration.create({
@@ -238,7 +243,7 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
         user: req.userId,
         teamMembers: [],
         paymentStatus: "pending",
-        paymentScreenshot: driveLink,
+        paymentScreenshot: screenshotValue,
         amount,
       });
 
