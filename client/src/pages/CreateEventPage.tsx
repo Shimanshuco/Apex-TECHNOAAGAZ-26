@@ -122,18 +122,18 @@ const CreateEventPage: React.FC = () => {
 
     const body: Record<string, any> = {
       title: form.title,
-      description: form.description || undefined,
+      description: form.description,
       category: form.category,
       cost: form.isPaid ? 1 : 0,
       venue: form.venue,
       participationType: form.participationType,
       date: form.date,
-      image: form.image || undefined,
+      image: form.image,
       studentCoordinators,
       facultyCoordinators,
-      rules: form.rules || undefined,
-      judgementCriterion: form.judgementCriterion || undefined,
-      prizes: form.prizes || undefined,
+      rules: form.rules,
+      judgementCriterion: form.judgementCriterion,
+      prizes: form.prizes,
     };
 
     if (form.participationType === "team") {

@@ -4,7 +4,8 @@ import { User } from "../models/User";
 import { Registration } from "../models/Registration";
 import { eventSchema, eventRegistrationSchema } from "../utils/validators";
 import { ENV } from "../config/env";
-import { uploadScreenshotToDrive } from "../utils/driveUploader";
+// NOTE: driveUploader is loaded lazily (dynamic import) so a misconfigured
+// Google-Drive setup never prevents the rest of the event routes from working.
 
 /**
  * GET /api/events/pricing
@@ -216,6 +217,7 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
       // Upload screenshot to Google Drive → store the link (not the image)
       let driveLink: string;
       try {
+        const { uploadScreenshotToDrive } = await import("../utils/driveUploader");
         driveLink = await uploadScreenshotToDrive({
           base64Image: paymentScreenshot,
           userName: user.name,

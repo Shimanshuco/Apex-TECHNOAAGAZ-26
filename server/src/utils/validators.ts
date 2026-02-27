@@ -123,7 +123,7 @@ export const eventSchema = z.object({
   minTeamSize:          z.coerce.number().min(1).default(2),
   maxTeamSize:          z.coerce.number().min(1).default(5),
   date:                 z.string(),                              // ISO date string
-  image:                z.string().optional(),                   // link (optional)
+  image:                z.string().optional(),
   studentCoordinators:  z.array(coordinatorSchema).optional().default([]),
   facultyCoordinators:  z.array(coordinatorSchema).optional().default([]),
   rules:                z.string().optional(),
