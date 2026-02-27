@@ -23,6 +23,15 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.token;
   }
 
+  const pk = ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  if (!pk || !pk.includes("-----BEGIN")) {
+    throw new Error(
+      "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is malformed. " +
+      "It must start with -----BEGIN PRIVATE KEY----- and contain real newlines. " +
+      `Current value starts with: '${pk.substring(0, 40)}...'`,
+    );
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
@@ -37,10 +46,19 @@ async function getAccessToken(): Promise<string> {
     Buffer.from(JSON.stringify(obj)).toString("base64url");
 
   const unsigned = `${encode(header)}.${encode(payload)}`;
-  const signature = crypto
-    .createSign("RSA-SHA256")
-    .update(unsigned)
-    .sign(ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, "base64url");
+
+  let signature: string;
+  try {
+    signature = crypto
+      .createSign("RSA-SHA256")
+      .update(unsigned)
+      .sign(pk, "base64url");
+  } catch (signErr) {
+    throw new Error(
+      `Failed to sign JWT with the private key. The key format is likely incorrect. ` +
+      `Make sure you copied the entire private_key value from the service-account JSON. Error: ${signErr}`,
+    );
+  }
 
   const jwt = `${unsigned}.${signature}`;
 

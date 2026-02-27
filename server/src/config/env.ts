@@ -21,5 +21,18 @@ export const ENV = {
   // Google Drive — Payment Screenshots
   GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID || "",
   GOOGLE_SERVICE_ACCOUNT_EMAIL: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "",
-  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
+  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: (() => {
+    let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "";
+    // Strip surrounding quotes if someone pasted the JSON string value as-is
+    if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+      key = key.slice(1, -1);
+    }
+    // Convert literal \n (two chars) to real newlines
+    key = key.replace(/\\n/g, "\n");
+    // Some dashboards store as escaped JSON — try parsing
+    if (!key.includes("-----BEGIN") && key.includes("-----BEGIN")) {
+      try { key = JSON.parse(`"${key}"`); } catch { /* ignore */ }
+    }
+    return key;
+  })(),
 } as const;
