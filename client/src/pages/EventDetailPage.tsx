@@ -4,6 +4,8 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Card, Button } from "../components";
 import { Input } from "../components/Input";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import {
   CalendarDays,
@@ -25,6 +27,8 @@ import {
   Search,
   Loader2,
   Crown,
+  FileText,
+  Scale,
 } from "lucide-react";
 
 interface Coordinator {
@@ -35,6 +39,7 @@ interface Coordinator {
 interface EventDetail {
   _id: string;
   title: string;
+  description?: string;
   category: string;
   cost: number;
   venue: string;
@@ -46,6 +51,7 @@ interface EventDetail {
   studentCoordinators: Coordinator[];
   facultyCoordinators: Coordinator[];
   rules?: string;
+  judgementCriterion?: string;
   prizes?: string;
 }
 
@@ -678,13 +684,39 @@ const EventDetailPage: React.FC = () => {
               </Card>
             )}
 
+          {/* Description */}
+          {event.description && (
+            <Card variant="glass">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-3">
+                <FileText size={18} className="text-gold" /> Description
+              </h3>
+              <div className="prose prose-invert prose-sm max-w-none text-gray-400 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_strong]:text-gray-200 [&_a]:text-gold [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.description}</ReactMarkdown>
+              </div>
+            </Card>
+          )}
+
           {/* Rules */}
           {event.rules && (
             <Card variant="glass">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-3">
                 <BookOpen size={18} className="text-gold" /> Rules
               </h3>
-              <p className="text-gray-400 whitespace-pre-line">{event.rules}</p>
+              <div className="prose prose-invert prose-sm max-w-none text-gray-400 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_strong]:text-gray-200 [&_a]:text-gold [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.rules}</ReactMarkdown>
+              </div>
+            </Card>
+          )}
+
+          {/* Judgement Criterion */}
+          {event.judgementCriterion && (
+            <Card variant="glass">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-3">
+                <Scale size={18} className="text-gold" /> Judgement Criterion
+              </h3>
+              <div className="prose prose-invert prose-sm max-w-none text-gray-400 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_strong]:text-gray-200 [&_a]:text-gold [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.judgementCriterion}</ReactMarkdown>
+              </div>
             </Card>
           )}
 
@@ -694,7 +726,9 @@ const EventDetailPage: React.FC = () => {
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-3">
                 <Trophy size={18} className="text-gold" /> Prizes
               </h3>
-              <p className="text-gray-400 whitespace-pre-line">{event.prizes}</p>
+              <div className="prose prose-invert prose-sm max-w-none text-gray-400 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_strong]:text-gray-200 [&_a]:text-gold [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.prizes}</ReactMarkdown>
+              </div>
             </Card>
           )}
 

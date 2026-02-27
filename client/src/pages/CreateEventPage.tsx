@@ -33,6 +33,7 @@ const CreateEventPage: React.FC = () => {
 
   const [form, setForm] = useState({
     title: "",
+    description: "",
     category: "cultural",
     isPaid: false,
     venue: "",
@@ -42,6 +43,7 @@ const CreateEventPage: React.FC = () => {
     date: "",
     image: "",
     rules: "",
+    judgementCriterion: "",
     prizes: "",
   });
 
@@ -66,6 +68,7 @@ const CreateEventPage: React.FC = () => {
         const e = res.data;
         setForm({
           title: e.title,
+          description: e.description || "",
           category: e.category,
           isPaid: (e.cost ?? 0) > 0,
           venue: e.venue,
@@ -75,6 +78,7 @@ const CreateEventPage: React.FC = () => {
           date: e.date?.split("T")[0] || "",
           image: e.image || "",
           rules: e.rules || "",
+          judgementCriterion: e.judgementCriterion || "",
           prizes: e.prizes || "",
         });
         setStudentCoordinators(e.studentCoordinators || []);
@@ -118,6 +122,7 @@ const CreateEventPage: React.FC = () => {
 
     const body: Record<string, any> = {
       title: form.title,
+      description: form.description || undefined,
       category: form.category,
       cost: form.isPaid ? 1 : 0,
       venue: form.venue,
@@ -127,6 +132,7 @@ const CreateEventPage: React.FC = () => {
       studentCoordinators,
       facultyCoordinators,
       rules: form.rules || undefined,
+      judgementCriterion: form.judgementCriterion || undefined,
       prizes: form.prizes || undefined,
     };
 
@@ -284,16 +290,34 @@ const CreateEventPage: React.FC = () => {
             onChange={(e) => update("image", e.target.value)}
           />
 
-          {/* Rules + Prizes */}
+          {/* Description (Markdown) */}
           <Textarea
-            label="Rules (Optional)"
-            placeholder="Event rules..."
+            label="Description (Markdown supported)"
+            placeholder="Write the event description here... Supports **bold**, *italic*, lists, etc."
+            value={form.description}
+            onChange={(e) => update("description", e.target.value)}
+          />
+
+          {/* Rules (Markdown) */}
+          <Textarea
+            label="Rules (Markdown supported)"
+            placeholder="Event rules... Supports **bold**, *italic*, numbered lists, etc."
             value={form.rules}
             onChange={(e) => update("rules", e.target.value)}
           />
+
+          {/* Judgement Criterion (Markdown) */}
           <Textarea
-            label="Prizes (Optional)"
-            placeholder="Prize details..."
+            label="Judgement Criterion (Markdown supported)"
+            placeholder="How participants will be judged... Supports **bold**, *italic*, lists, etc."
+            value={form.judgementCriterion}
+            onChange={(e) => update("judgementCriterion", e.target.value)}
+          />
+
+          {/* Prizes (Markdown) */}
+          <Textarea
+            label="Prizes (Markdown supported)"
+            placeholder="Prize details... Supports **bold**, *italic*, lists, etc."
             value={form.prizes}
             onChange={(e) => update("prizes", e.target.value)}
           />
