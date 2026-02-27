@@ -4,8 +4,8 @@ import { User } from "../models/User";
 import { Registration } from "../models/Registration";
 import { eventSchema, eventRegistrationSchema } from "../utils/validators";
 import { ENV } from "../config/env";
-// NOTE: driveUploader is loaded lazily (dynamic import) so a misconfigured
-// Google-Drive setup never prevents the rest of the event routes from working.
+// NOTE: screenshotUploader is loaded lazily (dynamic import) so a misconfigured
+// Cloudinary setup never prevents the rest of the event routes from working.
 
 /**
  * GET /api/events/pricing
@@ -214,19 +214,19 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
         return;
       }
 
-      // Upload screenshot to Google Drive → store the Drive link in DB
+      // Upload screenshot to Cloudinary → store the URL in DB
       let screenshotValue: string;
       try {
-        const { uploadScreenshotToDrive } = await import("../utils/driveUploader");
-        screenshotValue = await uploadScreenshotToDrive({
+        const { uploadScreenshot } = await import("../utils/screenshotUploader");
+        screenshotValue = await uploadScreenshot({
           base64Image: paymentScreenshot,
           userName: user.name,
           eventTitle: event.title,
           eventDate: event.date.toISOString(),
         });
-        console.log("Screenshot uploaded to Drive:", screenshotValue);
+        console.log("Screenshot uploaded:", screenshotValue);
       } catch (uploadErr: any) {
-        console.error("Drive upload error:", uploadErr);
+        console.error("Screenshot upload error:", uploadErr);
         res.status(500).json({
           success: false,
           message: `Failed to upload screenshot: ${uploadErr.message || "Unknown error"}. Please contact the admin.`,

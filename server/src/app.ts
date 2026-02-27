@@ -38,32 +38,6 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-/* ── Drive credential diagnostic (admin only, no auth for now) ── */
-app.get("/api/health/drive", async (_req, res) => {
-  const { ENV } = await import("./config/env");
-  const info: Record<string, string> = {};
-  info.FOLDER_ID = ENV.GOOGLE_DRIVE_FOLDER_ID ? `set (${ENV.GOOGLE_DRIVE_FOLDER_ID.length} chars)` : "MISSING";
-  info.SERVICE_EMAIL = ENV.GOOGLE_SERVICE_ACCOUNT_EMAIL || "MISSING";
-  const pk = ENV.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  if (!pk) {
-    info.PRIVATE_KEY = "MISSING";
-  } else if (!pk.includes("-----BEGIN")) {
-    info.PRIVATE_KEY = `MALFORMED — starts with: '${pk.substring(0, 50)}...'`;
-  } else {
-    info.PRIVATE_KEY = `OK (${pk.length} chars, starts with -----BEGIN)`;
-  }
-  // Try to get an access token
-  try {
-    const { uploadScreenshotToDrive } = await import("./utils/driveUploader");
-    // We won't actually upload, but calling getAccessToken via a tiny test
-    // Just verify JWT signing works by checking the module loads
-    info.MODULE_LOADS = "OK";
-  } catch (e: any) {
-    info.MODULE_LOADS = `FAIL: ${e.message}`;
-  }
-  res.json({ success: true, drive: info });
-});
-
 /* ── API routes ─────────────────────────────────────── */
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
