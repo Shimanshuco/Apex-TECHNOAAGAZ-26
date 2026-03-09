@@ -36,6 +36,11 @@ import {
   UsersRound,
   FolderOpen,
   Link,
+  Download,
+  History,
+  UserPlus,
+  GraduationCap,
+  Building2,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -111,6 +116,41 @@ interface GalleryFolderItem {
   driveFolderId: string;
   isActive: boolean;
   createdAt: string;
+}
+
+interface ScanItem {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  college: string;
+  scannedAt: string;
+  scannedBy: { _id: string; name: string; email: string; role: string };
+  result: "allowed" | "denied";
+}
+
+interface DayScanHistory {
+  date: string;
+  totalScans: number;
+  allowedCount: number;
+  deniedCount: number;
+  scans: ScanItem[];
+}
+
+interface WalkInItem {
+  _id: string;
+  name: string;
+  phone: string;
+  course: string;
+  college: string;
+  registeredAt: string;
+  registeredBy?: { _id: string; name: string; email: string; role: string };
+}
+
+interface DayWalkInData {
+  date: string;
+  count: number;
+  registrations: WalkInItem[];
 }
 
 const ROLE_OPTIONS = [
@@ -278,7 +318,15 @@ const AdminDashboardPage: React.FC = () => {
   const [artists, setArtists] = useState<ArtistItem[]>([]);
   const [roleFilter, setRoleFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments" | "gallery">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments" | "gallery" | "scans" | "walkins">("users");
+
+  // Scan History
+  const [scanHistory, setScanHistory] = useState<DayScanHistory[]>([]);
+  const [expandedScanDate, setExpandedScanDate] = useState<string | null>(null);
+
+  // Walk-In Registrations
+  const [walkInData, setWalkInData] = useState<DayWalkInData[]>([]);
+  const [expandedWalkInDate, setExpandedWalkInDate] = useState<string | null>(null);
 
   // Payments
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
@@ -301,11 +349,35 @@ const AdminDashboardPage: React.FC = () => {
   const [gallerySaving, setGallerySaving] = useState(false);
   const [galleryError, setGalleryError] = useState("");
 
+  /* ── Export events to Excel ── */
+  const handleExportEvents = async () => {
+    try {
+      const baseUrl = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
+      const apiBase = baseUrl.replace(/\/+$/, "").endsWith("/api") ? baseUrl.replace(/\/+$/, "") : `${baseUrl.replace(/\/+$/, "")}/api`;
+      const res = await fetch(`${apiBase}/admin/export-events`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to export events");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "event_registrations.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Export failed. Please try again.");
+    }
+  };
+
   /* ── Data fetch ── */
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes, galleryRes] = await Promise.all([
+      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes, galleryRes, scanHistoryRes, walkInRes] = await Promise.all([
         api<{ data: Stats }>("/qr/stats", { token }),
         api<{ data: UserItem[] }>(roleFilter ? `/admin/users/${roleFilter}` : "/admin/users", { token }),
         api<{ data: EventItem[] }>("/events"),
@@ -313,6 +385,8 @@ const AdminDashboardPage: React.FC = () => {
         api<{ data: PendingPayment[] }>("/admin/registrations/pending", { token }),
         api<{ data: EventRegStats }>("/admin/events/registration-stats", { token }),
         api<{ data: GalleryFolderItem[] }>("/gallery/all", { token }),
+        api<{ data: DayScanHistory[] }>("/admin/scan-history", { token }),
+        api<{ data: DayWalkInData[] }>("/walkin/registrations", { token }),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
@@ -321,6 +395,8 @@ const AdminDashboardPage: React.FC = () => {
       setPendingPayments(paymentsRes.data);
       setEventRegStats(regStatsRes.data);
       setGalleryFolders(galleryRes.data || []);
+      setScanHistory(scanHistoryRes.data || []);
+      setWalkInData(walkInRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -462,6 +538,8 @@ const AdminDashboardPage: React.FC = () => {
     { key: "payments" as const, icon: CreditCard, label: "Payments", count: pendingPayments.length },
     { key: "artists" as const, icon: Music, label: "Artists", count: artists.length },
     { key: "gallery" as const, icon: FolderOpen, label: "Gallery", count: galleryFolders.length },
+    { key: "scans" as const, icon: History, label: "Scan History", count: scanHistory.reduce((acc, d) => acc + d.totalScans, 0) },
+    { key: "walkins" as const, icon: UserPlus, label: "Walk-Ins", count: walkInData.reduce((acc, d) => acc + d.count, 0) },
   ];
 
   return (
@@ -477,6 +555,9 @@ const AdminDashboardPage: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" size="md" onClick={() => navigate("/admin/events/new")}>
             <span className="flex items-center gap-2"><Plus size={16} /> New Event</span>
+          </Button>
+          <Button variant="primary" size="md" onClick={handleExportEvents}>
+            <span className="flex items-center gap-2"><Download size={16} /> Export to Excel</span>
           </Button>
           <Button variant="outline" size="md" onClick={() => setArtistModal({ open: true, artist: null })}>
             <span className="flex items-center gap-2"><Music size={16} /> Add Artist</span>
@@ -1221,6 +1302,365 @@ const AdminDashboardPage: React.FC = () => {
                   </div>
                 </Card>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          SCAN HISTORY TAB
+          ═══════════════════════════════════════════════════════ */}
+      {activeTab === "scans" && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <Card className="p-6 bg-gradient-to-r from-navy/80 to-gray-900 border-gold/20">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center border border-gold/30">
+                  <History size={24} className="text-gold" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Scan History</h3>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    Day-wise QR verification records • One scan per person per day
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-center px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-2xl font-bold text-emerald-400">
+                    {scanHistory.reduce((acc, d) => acc + d.allowedCount, 0)}
+                  </p>
+                  <p className="text-xs text-emerald-400/70">Total Entries</p>
+                </div>
+                <div className="text-center px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <p className="text-2xl font-bold text-red-400">
+                    {scanHistory.reduce((acc, d) => acc + d.deniedCount, 0)}
+                  </p>
+                  <p className="text-xs text-red-400/70">Denied</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {scanHistory.length === 0 ? (
+            <Card className="p-12 text-center bg-gradient-to-b from-gray-900 to-navy/30">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gold/10 flex items-center justify-center">
+                <QrCode size={40} className="text-gold/50" />
+              </div>
+              <p className="text-gray-400 text-base">No scans recorded yet</p>
+              <p className="text-gray-600 text-sm mt-1">Start scanning QR codes to see history here</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {scanHistory.map((dayData) => {
+                const dateObj = new Date(dayData.date.split("/").reverse().join("-"));
+                const isToday = new Date().toDateString() === dateObj.toDateString();
+                const formattedDate = dateObj.toLocaleDateString("en-IN", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                });
+
+                return (
+                  <Card key={dayData.date} className="overflow-hidden border-gold/10 hover:border-gold/20 transition-colors">
+                    {/* Day Header */}
+                    <button
+                      onClick={() => setExpandedScanDate(expandedScanDate === dayData.date ? null : dayData.date)}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isToday ? "bg-gradient-to-br from-gold to-gold/60" : "bg-gold/10"}`}>
+                          <CalendarDays size={20} className={isToday ? "text-black" : "text-gold"} />
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <p className="text-white font-semibold">{formattedDate}</p>
+                            {isToday && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-gold text-black rounded-full">
+                                Today
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 mt-1">
+                            <span className="flex items-center gap-1.5 text-sm text-emerald-400">
+                              <CheckCircle size={14} />
+                              <span className="font-medium">{dayData.allowedCount}</span>
+                              <span className="text-emerald-400/70">allowed</span>
+                            </span>
+                            <span className="flex items-center gap-1.5 text-sm text-red-400">
+                              <X size={14} />
+                              <span className="font-medium">{dayData.deniedCount}</span>
+                              <span className="text-red-400/70">denied</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-white">{dayData.totalScans}</p>
+                          <p className="text-xs text-gray-500">total scans</p>
+                        </div>
+                        <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-transform ${expandedScanDate === dayData.date ? "rotate-180" : ""}`}>
+                          <ChevronDown size={18} className="text-gray-400" />
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Scans List */}
+                    {expandedScanDate === dayData.date && (
+                      <div className="border-t border-white/10 bg-black/20">
+                        <div className="grid grid-cols-12 gap-2 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-white/5">
+                          <div className="col-span-1">Status</div>
+                          <div className="col-span-3">Person</div>
+                          <div className="col-span-3">College</div>
+                          <div className="col-span-2">Contact</div>
+                          <div className="col-span-2">Time</div>
+                          <div className="col-span-1">Scanned By</div>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                          {dayData.scans.map((scan, idx) => {
+                            const scanTime = new Date(scan.scannedAt);
+                            const timeStr = scanTime.toLocaleTimeString("en-IN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                              hour12: true,
+                            });
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`grid grid-cols-12 gap-2 px-5 py-3 items-center border-b border-white/5 last:border-b-0 transition-colors hover:bg-white/5 ${
+                                  scan.result === "allowed" ? "bg-emerald-500/5" : "bg-red-500/5"
+                                }`}
+                              >
+                                {/* Status */}
+                                <div className="col-span-1">
+                                  <div
+                                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                      scan.result === "allowed"
+                                        ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/30"
+                                        : "bg-gradient-to-br from-red-500/30 to-red-500/10 border border-red-500/30"
+                                    }`}
+                                  >
+                                    {scan.result === "allowed" ? (
+                                      <CheckCircle size={18} className="text-emerald-400" />
+                                    ) : (
+                                      <X size={18} className="text-red-400" />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Person */}
+                                <div className="col-span-3 min-w-0">
+                                  <p className="text-white font-medium truncate">{scan.userName}</p>
+                                  <p className="text-xs text-gray-500 truncate">{scan.userEmail}</p>
+                                </div>
+
+                                {/* College */}
+                                <div className="col-span-3">
+                                  <p className="text-sm text-gray-300 truncate">{scan.college}</p>
+                                </div>
+
+                                {/* Contact */}
+                                <div className="col-span-2">
+                                  {scan.userPhone ? (
+                                    <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                                      <Phone size={12} />
+                                      {scan.userPhone}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-600 text-sm">-</span>
+                                  )}
+                                </div>
+
+                                {/* Time */}
+                                <div className="col-span-2">
+                                  <p className={`text-sm font-medium ${scan.result === "allowed" ? "text-emerald-400" : "text-red-400"}`}>
+                                    {scan.result === "allowed" ? "✓ ALLOWED" : "✕ DENIED"}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{timeStr}</p>
+                                </div>
+
+                                {/* Scanned By */}
+                                <div className="col-span-1">
+                                  {scan.scannedBy ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center">
+                                        <User size={12} className="text-gold" />
+                                      </div>
+                                      <span className="text-xs text-gray-400 truncate">{scan.scannedBy.name.split(" ")[0]}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-600">-</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          WALK-IN REGISTRATIONS TAB
+          ═══════════════════════════════════════════════════════ */}
+      {activeTab === "walkins" && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <Card className="p-6 bg-gradient-to-r from-navy/80 to-gray-900 border-gold/20">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center border border-emerald-500/30">
+                  <UserPlus size={24} className="text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Walk-In Registrations</h3>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    On-site registrations via QR code scan
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-center px-6 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-3xl font-bold text-emerald-400">
+                    {walkInData.reduce((acc, d) => acc + d.count, 0)}
+                  </p>
+                  <p className="text-xs text-emerald-400/70">Total Walk-Ins</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {walkInData.length === 0 ? (
+            <Card className="p-12 text-center bg-gradient-to-b from-gray-900 to-navy/30">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <UserPlus size={40} className="text-emerald-500/50" />
+              </div>
+              <p className="text-gray-400 text-base">No walk-in registrations yet</p>
+              <p className="text-gray-600 text-sm mt-1">Show the QR code in the Volunteer Panel to register walk-ins</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {walkInData.map((dayData) => {
+                const dateObj = new Date(dayData.date.split("/").reverse().join("-"));
+                const isToday = new Date().toDateString() === dateObj.toDateString();
+                const formattedDate = dateObj.toLocaleDateString("en-IN", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                });
+
+                return (
+                  <Card key={dayData.date} className="overflow-hidden border-gold/10 hover:border-gold/20 transition-colors">
+                    {/* Day Header */}
+                    <button
+                      onClick={() => setExpandedWalkInDate(expandedWalkInDate === dayData.date ? null : dayData.date)}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isToday ? "bg-gradient-to-br from-emerald-500 to-emerald-500/60" : "bg-emerald-500/10"}`}>
+                          <CalendarDays size={20} className={isToday ? "text-white" : "text-emerald-400"} />
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <p className="text-white font-semibold">{formattedDate}</p>
+                            {isToday && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-emerald-500 text-white rounded-full">
+                                Today
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-emerald-400 mt-0.5">
+                            <span className="font-medium">{dayData.count}</span>
+                            <span className="text-emerald-400/70"> registrations</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-transform ${expandedWalkInDate === dayData.date ? "rotate-180" : ""}`}>
+                        <ChevronDown size={18} className="text-gray-400" />
+                      </div>
+                    </button>
+
+                    {/* Registrations List */}
+                    {expandedWalkInDate === dayData.date && (
+                      <div className="border-t border-white/10 bg-black/20">
+                        <div className="grid grid-cols-12 gap-2 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-white/5">
+                          <div className="col-span-3">Name</div>
+                          <div className="col-span-2">Phone</div>
+                          <div className="col-span-3">Course</div>
+                          <div className="col-span-3">College</div>
+                          <div className="col-span-1">Time</div>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                          {dayData.registrations.map((reg) => {
+                            const regTime = new Date(reg.registeredAt);
+                            const timeStr = regTime.toLocaleTimeString("en-IN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            });
+
+                            return (
+                              <div
+                                key={reg._id}
+                                className="grid grid-cols-12 gap-2 px-5 py-3 items-center border-b border-white/5 last:border-b-0 transition-colors hover:bg-white/5"
+                              >
+                                {/* Name */}
+                                <div className="col-span-3 flex items-center gap-2 min-w-0">
+                                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                    <User size={14} className="text-emerald-400" />
+                                  </div>
+                                  <span className="text-white font-medium truncate">{reg.name}</span>
+                                </div>
+
+                                {/* Phone */}
+                                <div className="col-span-2">
+                                  <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                    <Phone size={12} className="text-gold/70" />
+                                    {reg.phone}
+                                  </span>
+                                </div>
+
+                                {/* Course */}
+                                <div className="col-span-3">
+                                  <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                    <GraduationCap size={12} className="text-gold/70" />
+                                    <span className="truncate">{reg.course}</span>
+                                  </span>
+                                </div>
+
+                                {/* College */}
+                                <div className="col-span-3">
+                                  <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                    <Building2 size={12} className="text-gold/70" />
+                                    <span className="truncate">{reg.college}</span>
+                                  </span>
+                                </div>
+
+                                {/* Time */}
+                                <div className="col-span-1">
+                                  <p className="text-xs text-gray-500">{timeStr}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

@@ -8,6 +8,7 @@ import qrRoutes from "./routes/qrRoutes";
 import artistRoutes from "./routes/artistRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import galleryRoutes from "./routes/galleryRoutes";
+import walkInRoutes from "./routes/walkInRoutes";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/api/qr", qrRoutes);
 app.use("/api/artists", artistRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/gallery", galleryRoutes);
+app.use("/api/walkin", walkInRoutes);
 
 /* ── Global error handler ───────────────────────────── */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -2,10 +2,12 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { Registration } from "../models/Registration";
+import { Event } from "../models/Event";
 import { signToken } from "../utils/jwt";
 import { generateQR } from "../utils/qrGenerator";
 import { volunteerSignupSchema, adminLoginSchema } from "../utils/validators";
 import { ENV } from "../config/env";
+import * as XLSX from "xlsx";
 
 /**
  * POST /api/admin/signup/volunteer
@@ -287,6 +289,139 @@ export const rejectPayment = async (req: Request, res: Response): Promise<void> 
     res.json({ success: true, message: "Payment rejected", data: reg });
   } catch (err) {
     console.error("RejectPayment error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/admin/export-events
+ * Export all event registrations with full participant details to Excel
+ */
+export const exportEventsToExcel = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const events = await Event.find();
+    const registrations = await Registration.find().populate("user").populate("event");
+
+    const rows: any[] = [];
+    for (const reg of registrations) {
+      const event = reg.event as any;
+      const user = reg.user as any;
+      if (!event || !user) continue;
+
+      const college = user.university === "apex_university" 
+        ? "Apex University" 
+        : user.collegeName || "Other";
+
+      if (event.participationType === "solo") {
+        rows.push({
+          "Student Name": user.name,
+          "College": college,
+          "Email": user.email,
+          "Phone": user.phone || "-",
+          "Payment": reg.paymentStatus === "completed" ? "Yes" : "No",
+          "Event Name": event.title,
+          "Event Category": event.category,
+          "Registration Date": new Date(reg.createdAt).toLocaleDateString("en-IN"),
+        });
+      } else {
+        // Team event - add leader and all team members
+        rows.push({
+          "Student Name": user.name + " (Team Leader)",
+          "College": college,
+          "Email": user.email,
+          "Phone": user.phone || "-",
+          "Payment": reg.paymentStatus === "completed" ? "Yes" : "No",
+          "Event Name": event.title,
+          "Event Category": event.category,
+          "Registration Date": new Date(reg.createdAt).toLocaleDateString("en-IN"),
+        });
+        for (const member of reg.teamMembers) {
+          rows.push({
+            "Student Name": member.name + " (Team Member)",
+            "College": "-",
+            "Email": member.email,
+            "Phone": member.phone || "-",
+            "Payment": reg.paymentStatus === "completed" ? "Yes" : "No",
+            "Event Name": event.title,
+            "Event Category": event.category,
+            "Registration Date": new Date(reg.createdAt).toLocaleDateString("en-IN"),
+          });
+        }
+      }
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Event Registrations");
+    const excelBuffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+    const buffer = Buffer.from(excelBuffer);
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=event_registrations.xlsx");
+    res.setHeader("Content-Length", buffer.length);
+    res.end(buffer);
+  } catch (err) {
+    console.error("ExportEventsToExcel error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/admin/scan-history
+ * Get day-wise scan history for all users
+ */
+export const getScanHistory = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await User.find({ scanCount: { $gt: 0 } })
+      .select("name email phone university collegeName scanHistory scanCount isVerified")
+      .populate("scanHistory.scannedBy", "name email role")
+      .sort({ "scanHistory.scannedAt": -1 });
+
+    // Group scans by date
+    const dayWiseScans: Record<string, any[]> = {};
+    
+    for (const user of users) {
+      for (const scan of user.scanHistory) {
+        const dateKey = new Date(scan.scannedAt).toLocaleDateString("en-IN");
+        if (!dayWiseScans[dateKey]) {
+          dayWiseScans[dateKey] = [];
+        }
+        dayWiseScans[dateKey].push({
+          userId: user._id,
+          userName: user.name,
+          userEmail: user.email,
+          userPhone: user.phone,
+          college: user.university === "apex_university" ? "Apex University" : user.collegeName || "Other",
+          scannedAt: scan.scannedAt,
+          scannedBy: scan.scannedBy,
+          result: scan.result,
+        });
+      }
+    }
+
+    // Sort each day's scans by time
+    for (const date of Object.keys(dayWiseScans)) {
+      dayWiseScans[date].sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
+    }
+
+    // Convert to array sorted by date (newest first)
+    const sortedDates = Object.keys(dayWiseScans).sort((a, b) => {
+      const dateA = new Date(a.split("/").reverse().join("-"));
+      const dateB = new Date(b.split("/").reverse().join("-"));
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    const result = sortedDates.map(date => ({
+      date,
+      totalScans: dayWiseScans[date].length,
+      allowedCount: dayWiseScans[date].filter((s: any) => s.result === "allowed").length,
+      deniedCount: dayWiseScans[date].filter((s: any) => s.result === "denied").length,
+      scans: dayWiseScans[date],
+    }));
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error("GetScanHistory error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

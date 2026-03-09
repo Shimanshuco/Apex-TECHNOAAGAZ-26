@@ -4,7 +4,8 @@ import { qrVerifySchema } from "../utils/validators";
 
 /**
  * POST /api/qr/verify
- * Volunteer or admin scans a QR → first scan = ALLOWED, subsequent = DENIED.
+ * Volunteer or admin scans a QR → first scan per day = ALLOWED, subsequent same day = DENIED.
+ * Each new day resets the allowance.
  * Tracks every scan attempt with who scanned and when.
  * Body: { userId: string }
  */
@@ -25,21 +26,28 @@ export const verifyQR = async (req: Request, res: Response): Promise<void> => {
     }
 
     const scannedById = req.userId!; // from authenticate middleware
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // ALREADY VERIFIED → ACCESS DENIED
-    if (user.isVerified) {
-      // Still log the denied attempt
+    // Check if already scanned TODAY (allowed scan)
+    const todayAllowedScan = user.scanHistory.find(
+      (s) => s.result === "allowed" && new Date(s.scannedAt) >= todayStart && new Date(s.scannedAt) < todayEnd
+    );
+
+    if (todayAllowedScan) {
+      // Already verified today → ACCESS DENIED
       user.scanCount += 1;
       user.scanHistory.push({
         scannedBy: scannedById as any,
-        scannedAt: new Date(),
+        scannedAt: now,
         result: "denied",
       });
       await user.save();
 
       res.status(403).json({
         success: false,
-        message: "⛔ ACCESS DENIED — Already scanned!",
+        message: "⛔ ACCESS DENIED — Already scanned today!",
         data: {
           id: user._id,
           name: user.name,
@@ -50,25 +58,25 @@ export const verifyQR = async (req: Request, res: Response): Promise<void> => {
           collegeName: user.collegeName,
           isVerified: true,
           scanCount: user.scanCount,
-          firstScannedAt: user.scanHistory.find(s => s.result === "allowed")?.scannedAt || null,
+          firstScannedTodayAt: todayAllowedScan.scannedAt,
         },
       });
       return;
     }
 
-    // FIRST SCAN → ALLOW ENTRY
+    // FIRST SCAN TODAY → ALLOW ENTRY
     user.isVerified = true;
-    user.scanCount = 1;
+    user.scanCount += 1;
     user.scanHistory.push({
       scannedBy: scannedById as any,
-      scannedAt: new Date(),
+      scannedAt: now,
       result: "allowed",
     });
     await user.save();
 
     res.json({
       success: true,
-      message: "✅ Entry Allowed — Verified successfully!",
+      message: "✅ Entry Allowed — Verified successfully for today!",
       data: {
         id: user._id,
         name: user.name,
@@ -78,7 +86,7 @@ export const verifyQR = async (req: Request, res: Response): Promise<void> => {
         university: user.university,
         collegeName: user.collegeName,
         isVerified: true,
-        scanCount: 1,
+        scanCount: user.scanCount,
       },
     });
   } catch (err) {

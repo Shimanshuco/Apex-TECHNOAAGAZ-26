@@ -15,6 +15,7 @@ import ArtistsPage from './pages/ArtistsPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import PreviousTechnoPage from './pages/PreviousTechnoPage';
+import WalkInRegisterPage from './pages/WalkInRegisterPage';
 import PageLayout from './components/PageLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -30,6 +31,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/volunteer/signup" element={<VolunteerSignupPage />} />
+        <Route path="/walkin-register" element={<WalkInRegisterPage />} />
 
         {/* Public pages inside PageLayout */}
         <Route path="/events" element={<PageLayout><EventsPage /></PageLayout>} />

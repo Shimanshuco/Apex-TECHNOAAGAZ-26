@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { QRCodeSVG } from "qrcode.react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Card, Button } from "../components";
@@ -17,6 +18,9 @@ import {
   ScanLine,
   RotateCcw,
   Loader2,
+  QrCode,
+  UserPlus,
+  Download,
 } from "lucide-react";
 
 /* ─── Types ─────────────────────────────────────────── */
@@ -401,6 +405,101 @@ const QRVerifyPage: React.FC = () => {
               If already scanned, a red "ACCESS DENIED" screen shows with total scan attempts.
             </p>
           </div>
+        </div>
+      </Card>
+
+      {/* ─── Walk-In Registration QR ─────────────────── */}
+      <Card variant="neon" glowColor="gold" className="mt-8 p-6">
+        <div className="flex flex-col lg:flex-row items-center gap-8">
+          {/* QR Code Display */}
+          <div className="flex-shrink-0">
+            <div className="bg-white p-4 rounded-2xl shadow-lg shadow-gold/20">
+              <QRCodeSVG
+                value={import.meta.env.VITE_WALKIN_URL || `${window.location.origin}/walkin-register`}
+                size={200}
+                level="H"
+                includeMargin={false}
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
+            </div>
+          </div>
+
+          {/* Info Section */}
+          <div className="flex-1 text-center lg:text-left">
+            <div className="flex items-center gap-3 justify-center lg:justify-start mb-3">
+              <div className="w-12 h-12 rounded-xl bg-gold/20 flex items-center justify-center">
+                <UserPlus size={24} className="text-gold" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Walk-In Registration</h3>
+            </div>
+            
+            <p className="text-gray-300 mb-4">
+              Show this QR code to attendees who haven't pre-registered online. 
+              They can scan it with their phone to quickly fill in their details.
+            </p>
+
+            <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4">
+              <h4 className="text-sm font-semibold text-gold mb-2 flex items-center gap-2">
+                <QrCode size={16} /> How Walk-In Works
+              </h4>
+              <ol className="text-sm text-gray-400 space-y-1.5">
+                <li className="flex items-start gap-2">
+                  <span className="text-gold font-bold">1.</span>
+                  <span>Show this QR code to the attendee</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold font-bold">2.</span>
+                  <span>They scan it and fill: Name, Phone, Course, College</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold font-bold">3.</span>
+                  <span>Data is saved and visible in Admin Dashboard</span>
+                </li>
+              </ol>
+            </div>
+
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => {
+                const svg = document.querySelector(".walkin-qr-container svg");
+                if (svg) {
+                  const svgData = new XMLSerializer().serializeToString(svg);
+                  const canvas = document.createElement("canvas");
+                  canvas.width = 400;
+                  canvas.height = 400;
+                  const ctx = canvas.getContext("2d");
+                  const img = new Image();
+                  img.onload = () => {
+                    ctx?.fillRect(0, 0, 400, 400);
+                    ctx?.drawImage(img, 0, 0, 400, 400);
+                    const link = document.createElement("a");
+                    link.download = "walkin-registration-qr.png";
+                    link.href = canvas.toDataURL("image/png");
+                    link.click();
+                  };
+                  img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                }
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <Download size={16} /> Download QR Code
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Hidden QR for download */}
+        <div className="walkin-qr-container hidden">
+          <QRCodeSVG
+            value={import.meta.env.VITE_WALKIN_URL || `${window.location.origin}/walkin-register`}
+            size={400}
+            level="H"
+            includeMargin={true}
+            bgColor="#ffffff"
+            fgColor="#000000"
+          />
         </div>
       </Card>
     </>

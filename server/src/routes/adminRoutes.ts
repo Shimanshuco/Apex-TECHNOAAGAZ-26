@@ -8,6 +8,8 @@ import {
   approvePayment,
   rejectPayment,
   getEventRegistrationStats,
+  exportEventsToExcel,
+  getScanHistory,
 } from "../controllers/adminController";
 import { authenticate } from "../middlewares/auth";
 import { roleGuard } from "../middlewares/roleGuard";
@@ -28,6 +30,12 @@ router.get("/users/:role", authenticate, roleGuard("admin"), getUsersByRole);
 
 // Admin-only: event registration stats
 router.get("/events/registration-stats", authenticate, roleGuard("admin"), getEventRegistrationStats);
+
+// Admin-only: export events to Excel
+router.get("/export-events", authenticate, roleGuard("admin"), exportEventsToExcel);
+
+// Admin-only: scan history (day-wise)
+router.get("/scan-history", authenticate, roleGuard("admin"), getScanHistory);
 
 // Admin-only: payment verification
 router.get("/registrations/pending", authenticate, roleGuard("admin"), getPendingPayments);
