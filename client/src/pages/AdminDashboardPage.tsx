@@ -1313,31 +1313,32 @@ const AdminDashboardPage: React.FC = () => {
       {activeTab === "scans" && (
         <div className="space-y-6">
           {/* Header Card */}
-          <Card className="p-6 bg-gradient-to-r from-navy/80 to-gray-900 border-gold/20">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center border border-gold/30">
-                  <History size={24} className="text-gold" />
+          <Card className="p-4 sm:p-6 bg-gradient-to-r from-navy/80 to-gray-900 border-gold/20">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center border border-gold/30 shrink-0">
+                  <History size={20} className="sm:hidden text-gold" />
+                  <History size={24} className="hidden sm:block text-gold" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Scan History</h3>
-                  <p className="text-sm text-gray-400 mt-0.5">
-                    Day-wise QR verification records • One scan per person per day
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-bold text-white">Scan History</h3>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5 line-clamp-2">
+                    Day-wise QR verification records
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-center px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-2xl font-bold text-emerald-400">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-xl sm:text-2xl font-bold text-emerald-400">
                     {scanHistory.reduce((acc, d) => acc + d.allowedCount, 0)}
                   </p>
-                  <p className="text-xs text-emerald-400/70">Total Entries</p>
+                  <p className="text-[10px] sm:text-xs text-emerald-400/70">Total Entries</p>
                 </div>
-                <div className="text-center px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
-                  <p className="text-2xl font-bold text-red-400">
+                <div className="text-center px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <p className="text-xl sm:text-2xl font-bold text-red-400">
                     {scanHistory.reduce((acc, d) => acc + d.deniedCount, 0)}
                   </p>
-                  <p className="text-xs text-red-400/70">Denied</p>
+                  <p className="text-[10px] sm:text-xs text-red-400/70">Denied</p>
                 </div>
               </div>
             </div>
@@ -1368,42 +1369,46 @@ const AdminDashboardPage: React.FC = () => {
                     {/* Day Header */}
                     <button
                       onClick={() => setExpandedScanDate(expandedScanDate === dayData.date ? null : dayData.date)}
-                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-all"
+                      className="w-full px-3 sm:px-5 py-3 sm:py-4 flex items-center justify-between hover:bg-white/5 transition-all"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isToday ? "bg-gradient-to-br from-gold to-gold/60" : "bg-gold/10"}`}>
-                          <CalendarDays size={20} className={isToday ? "text-black" : "text-gold"} />
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${isToday ? "bg-gradient-to-br from-gold to-gold/60" : "bg-gold/10"}`}>
+                          <CalendarDays size={18} className="sm:hidden" style={{ color: isToday ? "black" : "#D4AF37" }} />
+                          <CalendarDays size={20} className="hidden sm:block" style={{ color: isToday ? "black" : "#D4AF37" }} />
                         </div>
-                        <div className="text-left">
-                          <div className="flex items-center gap-2">
-                            <p className="text-white font-semibold">{formattedDate}</p>
+                        <div className="text-left min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm sm:text-base text-white font-semibold truncate">{formattedDate}</p>
                             {isToday && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-gold text-black rounded-full">
+                              <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-gold text-black rounded-full shrink-0">
                                 Today
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 mt-1">
-                            <span className="flex items-center gap-1.5 text-sm text-emerald-400">
-                              <CheckCircle size={14} />
+                          <div className="flex items-center gap-2 sm:gap-4 mt-1 flex-wrap">
+                            <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-emerald-400">
+                              <CheckCircle size={12} className="sm:hidden" />
+                              <CheckCircle size={14} className="hidden sm:block" />
                               <span className="font-medium">{dayData.allowedCount}</span>
-                              <span className="text-emerald-400/70">allowed</span>
+                              <span className="text-emerald-400/70 hidden xs:inline">allowed</span>
                             </span>
-                            <span className="flex items-center gap-1.5 text-sm text-red-400">
-                              <X size={14} />
+                            <span className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-red-400">
+                              <X size={12} className="sm:hidden" />
+                              <X size={14} className="hidden sm:block" />
                               <span className="font-medium">{dayData.deniedCount}</span>
-                              <span className="text-red-400/70">denied</span>
+                              <span className="text-red-400/70 hidden xs:inline">denied</span>
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-white">{dayData.totalScans}</p>
-                          <p className="text-xs text-gray-500">total scans</p>
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <div className="text-right hidden xs:block">
+                          <p className="text-base sm:text-lg font-bold text-white">{dayData.totalScans}</p>
+                          <p className="text-[10px] sm:text-xs text-gray-500">total scans</p>
                         </div>
-                        <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-transform ${expandedScanDate === dayData.date ? "rotate-180" : ""}`}>
-                          <ChevronDown size={18} className="text-gray-400" />
+                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/5 flex items-center justify-center transition-transform ${expandedScanDate === dayData.date ? "rotate-180" : ""}`}>
+                          <ChevronDown size={16} className="sm:hidden text-gray-400" />
+                          <ChevronDown size={18} className="hidden sm:block text-gray-400" />
                         </div>
                       </div>
                     </button>
@@ -1411,7 +1416,8 @@ const AdminDashboardPage: React.FC = () => {
                     {/* Scans List */}
                     {expandedScanDate === dayData.date && (
                       <div className="border-t border-white/10 bg-black/20">
-                        <div className="grid grid-cols-12 gap-2 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-white/5">
+                        {/* Desktop Table Header - Hidden on mobile */}
+                        <div className="hidden lg:grid grid-cols-12 gap-2 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-white/5">
                           <div className="col-span-1">Status</div>
                           <div className="col-span-3">Person</div>
                           <div className="col-span-3">College</div>
@@ -1419,7 +1425,7 @@ const AdminDashboardPage: React.FC = () => {
                           <div className="col-span-2">Time</div>
                           <div className="col-span-1">Scanned By</div>
                         </div>
-                        <div className="max-h-[400px] overflow-y-auto">
+                        <div className="max-h-[500px] overflow-y-auto">
                           {dayData.scans.map((scan, idx) => {
                             const scanTime = new Date(scan.scannedAt);
                             const timeStr = scanTime.toLocaleTimeString("en-IN", {
@@ -1432,70 +1438,130 @@ const AdminDashboardPage: React.FC = () => {
                             return (
                               <div
                                 key={idx}
-                                className={`grid grid-cols-12 gap-2 px-5 py-3 items-center border-b border-white/5 last:border-b-0 transition-colors hover:bg-white/5 ${
+                                className={`border-b border-white/5 last:border-b-0 transition-colors hover:bg-white/5 ${
                                   scan.result === "allowed" ? "bg-emerald-500/5" : "bg-red-500/5"
                                 }`}
                               >
-                                {/* Status */}
-                                <div className="col-span-1">
-                                  <div
-                                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                      scan.result === "allowed"
-                                        ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/30"
-                                        : "bg-gradient-to-br from-red-500/30 to-red-500/10 border border-red-500/30"
-                                    }`}
-                                  >
-                                    {scan.result === "allowed" ? (
-                                      <CheckCircle size={18} className="text-emerald-400" />
-                                    ) : (
-                                      <X size={18} className="text-red-400" />
-                                    )}
+                                {/* Mobile Card Layout */}
+                                <div className="lg:hidden p-4">
+                                  <div className="flex items-start gap-3">
+                                    {/* Status Icon */}
+                                    <div
+                                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                        scan.result === "allowed"
+                                          ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/30"
+                                          : "bg-gradient-to-br from-red-500/30 to-red-500/10 border border-red-500/30"
+                                      }`}
+                                    >
+                                      {scan.result === "allowed" ? (
+                                        <CheckCircle size={18} className="text-emerald-400" />
+                                      ) : (
+                                        <X size={18} className="text-red-400" />
+                                      )}
+                                    </div>
+                                    
+                                    {/* Main Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                        <p className="text-white font-medium truncate">{scan.userName}</p>
+                                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                          scan.result === "allowed"
+                                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                            : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        }`}>
+                                          {scan.result === "allowed" ? "ALLOWED" : "DENIED"}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-500 truncate mb-2">{scan.userEmail}</p>
+                                      
+                                      <div className="space-y-1.5">
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <GraduationCap size={12} className="text-gold/70 shrink-0" />
+                                          <span className="text-gray-300 truncate">{scan.college}</span>
+                                        </div>
+                                        {scan.userPhone && (
+                                          <div className="flex items-center gap-2 text-xs">
+                                            <Phone size={12} className="text-gold/70 shrink-0" />
+                                            <span className="text-gray-400">{scan.userPhone}</span>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center justify-between pt-1">
+                                          <span className="text-xs text-gray-500">{timeStr}</span>
+                                          {scan.scannedBy && (
+                                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                                              <User size={10} className="text-gold/50" />
+                                              {scan.scannedBy.name.split(" ")[0]}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
 
-                                {/* Person */}
-                                <div className="col-span-3 min-w-0">
-                                  <p className="text-white font-medium truncate">{scan.userName}</p>
-                                  <p className="text-xs text-gray-500 truncate">{scan.userEmail}</p>
-                                </div>
-
-                                {/* College */}
-                                <div className="col-span-3">
-                                  <p className="text-sm text-gray-300 truncate">{scan.college}</p>
-                                </div>
-
-                                {/* Contact */}
-                                <div className="col-span-2">
-                                  {scan.userPhone ? (
-                                    <span className="flex items-center gap-1.5 text-sm text-gray-400">
-                                      <Phone size={12} />
-                                      {scan.userPhone}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-600 text-sm">-</span>
-                                  )}
-                                </div>
-
-                                {/* Time */}
-                                <div className="col-span-2">
-                                  <p className={`text-sm font-medium ${scan.result === "allowed" ? "text-emerald-400" : "text-red-400"}`}>
-                                    {scan.result === "allowed" ? "✓ ALLOWED" : "✕ DENIED"}
-                                  </p>
-                                  <p className="text-xs text-gray-500">{timeStr}</p>
-                                </div>
-
-                                {/* Scanned By */}
-                                <div className="col-span-1">
-                                  {scan.scannedBy ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <div className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center">
-                                        <User size={12} className="text-gold" />
-                                      </div>
-                                      <span className="text-xs text-gray-400 truncate">{scan.scannedBy.name.split(" ")[0]}</span>
+                                {/* Desktop Table Row */}
+                                <div className="hidden lg:grid grid-cols-12 gap-2 px-5 py-3 items-center">
+                                  {/* Status */}
+                                  <div className="col-span-1">
+                                    <div
+                                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                        scan.result === "allowed"
+                                          ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/30"
+                                          : "bg-gradient-to-br from-red-500/30 to-red-500/10 border border-red-500/30"
+                                      }`}
+                                    >
+                                      {scan.result === "allowed" ? (
+                                        <CheckCircle size={18} className="text-emerald-400" />
+                                      ) : (
+                                        <X size={18} className="text-red-400" />
+                                      )}
                                     </div>
-                                  ) : (
-                                    <span className="text-gray-600">-</span>
-                                  )}
+                                  </div>
+
+                                  {/* Person */}
+                                  <div className="col-span-3 min-w-0">
+                                    <p className="text-white font-medium truncate">{scan.userName}</p>
+                                    <p className="text-xs text-gray-500 truncate">{scan.userEmail}</p>
+                                  </div>
+
+                                  {/* College */}
+                                  <div className="col-span-3">
+                                    <p className="text-sm text-gray-300 truncate">{scan.college}</p>
+                                  </div>
+
+                                  {/* Contact */}
+                                  <div className="col-span-2">
+                                    {scan.userPhone ? (
+                                      <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                                        <Phone size={12} />
+                                        {scan.userPhone}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-600 text-sm">-</span>
+                                    )}
+                                  </div>
+
+                                  {/* Time */}
+                                  <div className="col-span-2">
+                                    <p className={`text-sm font-medium ${scan.result === "allowed" ? "text-emerald-400" : "text-red-400"}`}>
+                                      {scan.result === "allowed" ? "✓ ALLOWED" : "✕ DENIED"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">{timeStr}</p>
+                                  </div>
+
+                                  {/* Scanned By */}
+                                  <div className="col-span-1">
+                                    {scan.scannedBy ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center">
+                                          <User size={12} className="text-gold" />
+                                        </div>
+                                        <span className="text-xs text-gray-400 truncate">{scan.scannedBy.name.split(" ")[0]}</span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-600">-</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1517,25 +1583,24 @@ const AdminDashboardPage: React.FC = () => {
       {activeTab === "walkins" && (
         <div className="space-y-6">
           {/* Header Card */}
-          <Card className="p-6 bg-gradient-to-r from-navy/80 to-gray-900 border-gold/20">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center border border-emerald-500/30">
-                  <UserPlus size={24} className="text-emerald-400" />
+          <Card className="p-4 sm:p-6 bg-gradient-to-r from-navy/80 to-gray-900 border-gold/20">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                  <UserPlus size={20} className="sm:hidden text-emerald-400" />
+                  <UserPlus size={24} className="hidden sm:block text-emerald-400" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Walk-In Registrations</h3>
-                  <p className="text-sm text-gray-400 mt-0.5">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg sm:text-xl font-bold text-white">Walk-In Registrations</h3>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
                     On-site registrations via QR code scan
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-center px-6 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-3xl font-bold text-emerald-400">
+                <div className="text-center px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                  <p className="text-2xl sm:text-3xl font-bold text-emerald-400">
                     {walkInData.reduce((acc, d) => acc + d.count, 0)}
                   </p>
-                  <p className="text-xs text-emerald-400/70">Total Walk-Ins</p>
+                  <p className="text-[10px] sm:text-xs text-emerald-400/70">Total Walk-Ins</p>
                 </div>
               </div>
             </div>
@@ -1566,43 +1631,46 @@ const AdminDashboardPage: React.FC = () => {
                     {/* Day Header */}
                     <button
                       onClick={() => setExpandedWalkInDate(expandedWalkInDate === dayData.date ? null : dayData.date)}
-                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-all"
+                      className="w-full px-3 sm:px-5 py-3 sm:py-4 flex items-center justify-between hover:bg-white/5 transition-all"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isToday ? "bg-gradient-to-br from-emerald-500 to-emerald-500/60" : "bg-emerald-500/10"}`}>
-                          <CalendarDays size={20} className={isToday ? "text-white" : "text-emerald-400"} />
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${isToday ? "bg-gradient-to-br from-emerald-500 to-emerald-500/60" : "bg-emerald-500/10"}`}>
+                          <CalendarDays size={18} className="sm:hidden" style={{ color: isToday ? "white" : "#34d399" }} />
+                          <CalendarDays size={20} className="hidden sm:block" style={{ color: isToday ? "white" : "#34d399" }} />
                         </div>
-                        <div className="text-left">
-                          <div className="flex items-center gap-2">
-                            <p className="text-white font-semibold">{formattedDate}</p>
+                        <div className="text-left min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm sm:text-base text-white font-semibold truncate">{formattedDate}</p>
                             {isToday && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-emerald-500 text-white rounded-full">
+                              <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-emerald-500 text-white rounded-full shrink-0">
                                 Today
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-emerald-400 mt-0.5">
+                          <p className="text-xs sm:text-sm text-emerald-400 mt-0.5">
                             <span className="font-medium">{dayData.count}</span>
                             <span className="text-emerald-400/70"> registrations</span>
                           </p>
                         </div>
                       </div>
-                      <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-transform ${expandedWalkInDate === dayData.date ? "rotate-180" : ""}`}>
-                        <ChevronDown size={18} className="text-gray-400" />
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/5 flex items-center justify-center transition-transform shrink-0 ${expandedWalkInDate === dayData.date ? "rotate-180" : ""}`}>
+                        <ChevronDown size={16} className="sm:hidden text-gray-400" />
+                        <ChevronDown size={18} className="hidden sm:block text-gray-400" />
                       </div>
                     </button>
 
                     {/* Registrations List */}
                     {expandedWalkInDate === dayData.date && (
                       <div className="border-t border-white/10 bg-black/20">
-                        <div className="grid grid-cols-12 gap-2 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-white/5">
+                        {/* Desktop Table Header - Hidden on mobile */}
+                        <div className="hidden lg:grid grid-cols-12 gap-2 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-white/5">
                           <div className="col-span-3">Name</div>
                           <div className="col-span-2">Phone</div>
                           <div className="col-span-3">Course</div>
                           <div className="col-span-3">College</div>
                           <div className="col-span-1">Time</div>
                         </div>
-                        <div className="max-h-[400px] overflow-y-auto">
+                        <div className="max-h-[500px] overflow-y-auto">
                           {dayData.registrations.map((reg) => {
                             const regTime = new Date(reg.registeredAt);
                             const timeStr = regTime.toLocaleTimeString("en-IN", {
@@ -1614,43 +1682,79 @@ const AdminDashboardPage: React.FC = () => {
                             return (
                               <div
                                 key={reg._id}
-                                className="grid grid-cols-12 gap-2 px-5 py-3 items-center border-b border-white/5 last:border-b-0 transition-colors hover:bg-white/5"
+                                className="border-b border-white/5 last:border-b-0 transition-colors hover:bg-white/5"
                               >
-                                {/* Name */}
-                                <div className="col-span-3 flex items-center gap-2 min-w-0">
-                                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
-                                    <User size={14} className="text-emerald-400" />
+                                {/* Mobile Card Layout */}
+                                <div className="lg:hidden p-4">
+                                  <div className="flex items-start gap-3">
+                                    {/* User Icon */}
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                                      <User size={18} className="text-emerald-400" />
+                                    </div>
+                                    
+                                    {/* Main Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2 mb-2">
+                                        <p className="text-white font-medium truncate">{reg.name}</p>
+                                        <span className="shrink-0 text-xs text-gray-500">{timeStr}</span>
+                                      </div>
+                                      
+                                      <div className="space-y-1.5">
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <Phone size={12} className="text-gold/70 shrink-0" />
+                                          <span className="text-gray-300">{reg.phone}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <GraduationCap size={12} className="text-gold/70 shrink-0" />
+                                          <span className="text-gray-300 truncate">{reg.course}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <Building2 size={12} className="text-gold/70 shrink-0" />
+                                          <span className="text-gray-300 truncate">{reg.college}</span>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <span className="text-white font-medium truncate">{reg.name}</span>
                                 </div>
 
-                                {/* Phone */}
-                                <div className="col-span-2">
-                                  <span className="flex items-center gap-1.5 text-sm text-gray-300">
-                                    <Phone size={12} className="text-gold/70" />
-                                    {reg.phone}
-                                  </span>
-                                </div>
+                                {/* Desktop Table Row */}
+                                <div className="hidden lg:grid grid-cols-12 gap-2 px-5 py-3 items-center">
+                                  {/* Name */}
+                                  <div className="col-span-3 flex items-center gap-2 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                      <User size={14} className="text-emerald-400" />
+                                    </div>
+                                    <span className="text-white font-medium truncate">{reg.name}</span>
+                                  </div>
 
-                                {/* Course */}
-                                <div className="col-span-3">
-                                  <span className="flex items-center gap-1.5 text-sm text-gray-300">
-                                    <GraduationCap size={12} className="text-gold/70" />
-                                    <span className="truncate">{reg.course}</span>
-                                  </span>
-                                </div>
+                                  {/* Phone */}
+                                  <div className="col-span-2">
+                                    <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                      <Phone size={12} className="text-gold/70" />
+                                      {reg.phone}
+                                    </span>
+                                  </div>
 
-                                {/* College */}
-                                <div className="col-span-3">
-                                  <span className="flex items-center gap-1.5 text-sm text-gray-300">
-                                    <Building2 size={12} className="text-gold/70" />
-                                    <span className="truncate">{reg.college}</span>
-                                  </span>
-                                </div>
+                                  {/* Course */}
+                                  <div className="col-span-3">
+                                    <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                      <GraduationCap size={12} className="text-gold/70" />
+                                      <span className="truncate">{reg.course}</span>
+                                    </span>
+                                  </div>
 
-                                {/* Time */}
-                                <div className="col-span-1">
-                                  <p className="text-xs text-gray-500">{timeStr}</p>
+                                  {/* College */}
+                                  <div className="col-span-3">
+                                    <span className="flex items-center gap-1.5 text-sm text-gray-300">
+                                      <Building2 size={12} className="text-gold/70" />
+                                      <span className="truncate">{reg.college}</span>
+                                    </span>
+                                  </div>
+
+                                  {/* Time */}
+                                  <div className="col-span-1">
+                                    <p className="text-xs text-gray-500">{timeStr}</p>
+                                  </div>
                                 </div>
                               </div>
                             );
