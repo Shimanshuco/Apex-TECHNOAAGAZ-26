@@ -216,10 +216,6 @@ const WalkInRegisterPage: React.FC = () => {
                 </p>
               </div>
             </div>
-
-            <Button variant="outline" size="md" onClick={handleReset}>
-              Register Another Person
-            </Button>
           </Card>
         )}
 
