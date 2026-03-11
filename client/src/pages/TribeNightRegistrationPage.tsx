@@ -23,6 +23,7 @@ import {
 
 /* ── Event details ── */
 const TRIBE_NIGHT_PRICE = 299;
+// Done
 
 /* ── Gender options ── */
 const GENDER_OPTIONS = [
