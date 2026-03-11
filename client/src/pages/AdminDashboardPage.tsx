@@ -41,6 +41,7 @@ import {
   UserPlus,
   GraduationCap,
   Building2,
+  PartyPopper,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -151,6 +152,20 @@ interface DayWalkInData {
   date: string;
   count: number;
   registrations: WalkInItem[];
+}
+
+interface TribeNightItem {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  gender: "male" | "female";
+  paymentStatus: "pending" | "completed" | "failed";
+  paymentScreenshot: string;
+  qrCode?: string;
+  amount: number;
+  registeredAt: string;
+  createdAt: string;
 }
 
 const ROLE_OPTIONS = [
@@ -318,7 +333,7 @@ const AdminDashboardPage: React.FC = () => {
   const [artists, setArtists] = useState<ArtistItem[]>([]);
   const [roleFilter, setRoleFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments" | "gallery" | "scans" | "walkins">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "events" | "artists" | "payments" | "gallery" | "scans" | "walkins" | "tribenight">("users");
 
   // Scan History
   const [scanHistory, setScanHistory] = useState<DayScanHistory[]>([]);
@@ -327,6 +342,10 @@ const AdminDashboardPage: React.FC = () => {
   // Walk-In Registrations
   const [walkInData, setWalkInData] = useState<DayWalkInData[]>([]);
   const [expandedWalkInDate, setExpandedWalkInDate] = useState<string | null>(null);
+
+  // Tribe Night Registrations
+  const [tribeNightRegistrations, setTribeNightRegistrations] = useState<TribeNightItem[]>([]);
+  const [processingTribeNightId, setProcessingTribeNightId] = useState<string | null>(null);
 
   // Payments
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
@@ -377,7 +396,7 @@ const AdminDashboardPage: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes, galleryRes, scanHistoryRes, walkInRes] = await Promise.all([
+      const [statsRes, usersRes, eventsRes, artistsRes, paymentsRes, regStatsRes, galleryRes, scanHistoryRes, walkInRes, tribeNightRes] = await Promise.all([
         api<{ data: Stats }>("/qr/stats", { token }),
         api<{ data: UserItem[] }>(roleFilter ? `/admin/users/${roleFilter}` : "/admin/users", { token }),
         api<{ data: EventItem[] }>("/events"),
@@ -387,6 +406,7 @@ const AdminDashboardPage: React.FC = () => {
         api<{ data: GalleryFolderItem[] }>("/gallery/all", { token }),
         api<{ data: DayScanHistory[] }>("/admin/scan-history", { token }),
         api<{ data: DayWalkInData[] }>("/walkin/registrations", { token }),
+        api<{ data: TribeNightItem[] }>("/tribe-night/registrations", { token }),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
@@ -397,6 +417,7 @@ const AdminDashboardPage: React.FC = () => {
       setGalleryFolders(galleryRes.data || []);
       setScanHistory(scanHistoryRes.data || []);
       setWalkInData(walkInRes.data || []);
+      setTribeNightRegistrations(tribeNightRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -458,6 +479,36 @@ const AdminDashboardPage: React.FC = () => {
       console.error(err);
     } finally {
       setProcessingPaymentId(null);
+    }
+  };
+
+  /* ── Tribe Night payment helpers ── */
+  const handleApproveTribeNight = async (id: string) => {
+    setProcessingTribeNightId(id);
+    try {
+      await api(`/tribe-night/${id}/verify`, { method: "PUT", body: { status: "completed" }, token });
+      setTribeNightRegistrations((p) =>
+        p.map((r) => (r._id === id ? { ...r, paymentStatus: "completed" } : r))
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProcessingTribeNightId(null);
+    }
+  };
+
+  const handleRejectTribeNight = async (id: string) => {
+    if (!confirm("Reject this payment? The student will need to re-register.")) return;
+    setProcessingTribeNightId(id);
+    try {
+      await api(`/tribe-night/${id}/verify`, { method: "PUT", body: { status: "failed" }, token });
+      setTribeNightRegistrations((p) =>
+        p.map((r) => (r._id === id ? { ...r, paymentStatus: "failed" } : r))
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProcessingTribeNightId(null);
     }
   };
 
@@ -536,6 +587,7 @@ const AdminDashboardPage: React.FC = () => {
     { key: "users" as const, icon: Users, label: "Users", count: users.length },
     { key: "events" as const, icon: CalendarDays, label: "Events", count: events.length },
     { key: "payments" as const, icon: CreditCard, label: "Payments", count: pendingPayments.length },
+    { key: "tribenight" as const, icon: PartyPopper, label: "Tribe Night", count: tribeNightRegistrations.filter(r => r.paymentStatus === "pending").length },
     { key: "artists" as const, icon: Music, label: "Artists", count: artists.length },
     { key: "gallery" as const, icon: FolderOpen, label: "Gallery", count: galleryFolders.length },
     { key: "scans" as const, icon: History, label: "Scan History", count: scanHistory.reduce((acc, d) => acc + d.totalScans, 0) },
@@ -1064,6 +1116,162 @@ const AdminDashboardPage: React.FC = () => {
                 </div>
               </Card>
             ))
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════
+          TRIBE NIGHT TAB
+         ═══════════════════════════════════════════════ */}
+      {activeTab === "tribenight" && (
+        <div className="space-y-4">
+          {/* Header Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <Card className="p-4 text-center bg-white/5">
+              <p className="text-2xl font-bold text-white">{tribeNightRegistrations.length}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </Card>
+            <Card className="p-4 text-center bg-yellow-500/5 border-yellow-500/20">
+              <p className="text-2xl font-bold text-yellow-400">{tribeNightRegistrations.filter(r => r.paymentStatus === "pending").length}</p>
+              <p className="text-xs text-gray-500">Pending</p>
+            </Card>
+            <Card className="p-4 text-center bg-green-500/5 border-green-500/20">
+              <p className="text-2xl font-bold text-green-400">{tribeNightRegistrations.filter(r => r.paymentStatus === "completed").length}</p>
+              <p className="text-xs text-gray-500">Verified</p>
+            </Card>
+            <Card className="p-4 text-center bg-red-500/5 border-red-500/20">
+              <p className="text-2xl font-bold text-red-400">{tribeNightRegistrations.filter(r => r.paymentStatus === "failed").length}</p>
+              <p className="text-xs text-gray-500">Rejected</p>
+            </Card>
+          </div>
+
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-gray-400">
+              {tribeNightRegistrations.filter(r => r.paymentStatus === "pending").length} pending payment{tribeNightRegistrations.filter(r => r.paymentStatus === "pending").length !== 1 ? "s" : ""} to review
+            </p>
+            <Button variant="outline" size="sm" onClick={fetchAll}>
+              <span className="flex items-center gap-2"><Loader2 size={14} /> Refresh</span>
+            </Button>
+          </div>
+
+          {tribeNightRegistrations.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-gray-600">
+              <PartyPopper size={40} className="mb-3 opacity-30" />
+              <p>No Tribe Night registrations yet</p>
+              <p className="text-xs text-gray-700 mt-1">Registrations will appear here</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {tribeNightRegistrations.map((reg) => (
+                <Card key={reg._id} variant="glass" className="hover:border-white/15 transition-all duration-300">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Screenshot preview thumbnail */}
+                    {reg.paymentScreenshot && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewScreenshot(reg.paymentScreenshot || null)}
+                        className="relative w-full sm:w-32 h-40 sm:h-32 rounded-xl overflow-hidden border border-white/10 shrink-0 group cursor-pointer"
+                      >
+                        <img
+                          src={reg.paymentScreenshot}
+                          alt="Payment screenshot"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                          <Eye size={20} className="text-white" />
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-base font-semibold text-white">{reg.name}</h3>
+                          <p className="text-xs text-gray-500 mt-0.5">{reg.email}</p>
+                          <p className="text-xs text-gray-500">{reg.phone}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 border border-purple-500/20 text-purple-400 shrink-0">
+                            <IndianRupee size={11} />{reg.amount}
+                          </span>
+                          {/* Payment Status Badge */}
+                          {reg.paymentStatus === "completed" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/10 border border-green-500/20 text-green-400">
+                              <CheckCircle size={10} /> Verified
+                            </span>
+                          ) : reg.paymentStatus === "pending" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-500/10 border border-yellow-500/20 text-yellow-400">
+                              <Clock size={10} /> Pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 border border-red-500/20 text-red-400">
+                              <AlertCircle size={10} /> Rejected
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-gray-400">
+                        <span className="flex items-center gap-1.5">
+                          <PartyPopper size={11} className="text-purple-400/70" />
+                          Tribe Night
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <User size={11} className="text-gold/50" />
+                          {reg.gender === "male" ? "Male" : "Female"}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={11} className="text-gray-600" />
+                          {formatDate(reg.createdAt)}
+                        </span>
+                      </div>
+
+                      {/* Actions - Only show for pending */}
+                      {reg.paymentStatus === "pending" && (
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleApproveTribeNight(reg._id)}
+                            disabled={processingTribeNightId === reg._id}
+                          >
+                            <span className="flex items-center gap-2">
+                              {processingTribeNightId === reg._id ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <ThumbsUp size={14} />
+                              )}
+                              Approve
+                            </span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectTribeNight(reg._id)}
+                            disabled={processingTribeNightId === reg._id}
+                          >
+                            <span className="flex items-center gap-2">
+                              <ThumbsDown size={14} />
+                              Reject
+                            </span>
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* QR Code for verified */}
+                      {reg.paymentStatus === "completed" && reg.qrCode && (
+                        <div className="mt-3 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                          <p className="text-xs text-green-400 flex items-center gap-1.5">
+                            <QrCode size={12} /> QR Code generated
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       )}
