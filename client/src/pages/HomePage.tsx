@@ -146,6 +146,13 @@ const HomePage: React.FC = () => {
             Register Now
           </button>
         )}
+        {/* Tribe Night Registration Button */}
+        <button
+          onClick={() => navigate('/tribe-night')}
+          className="inline-flex items-center gap-2 px-5 py-2 rounded-lg font-semibold text-sm text-white border-2 border-purple-500 bg-purple-500/10 backdrop-blur-sm hover:bg-purple-500/25 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 hover:scale-105"
+        >
+          Tribe Night Registration
+        </button>
       </div>
 
       {/* Left Sidebar (+ social links inside mobile menu) */}

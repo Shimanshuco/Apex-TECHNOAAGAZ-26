@@ -16,6 +16,8 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import PreviousTechnoPage from './pages/PreviousTechnoPage';
 import WalkInRegisterPage from './pages/WalkInRegisterPage';
+import TribeNightRegistrationPage from './pages/TribeNightRegistrationPage';
+import TribeNightStatusPage from './pages/TribeNightStatusPage';
 import PageLayout from './components/PageLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -32,6 +34,8 @@ function App() {
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/volunteer/signup" element={<VolunteerSignupPage />} />
         <Route path="/walkin-register" element={<WalkInRegisterPage />} />
+        <Route path="/tribe-night" element={<TribeNightRegistrationPage />} />
+        <Route path="/tribe-night/status" element={<TribeNightStatusPage />} />
 
         {/* Public pages inside PageLayout */}
         <Route path="/events" element={<PageLayout><EventsPage /></PageLayout>} />

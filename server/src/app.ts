@@ -9,6 +9,7 @@ import artistRoutes from "./routes/artistRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import galleryRoutes from "./routes/galleryRoutes";
 import walkInRoutes from "./routes/walkInRoutes";
+import tribeNightRoutes from "./routes/tribeNightRoutes";
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/artists", artistRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/walkin", walkInRoutes);
+app.use("/api/tribe-night", tribeNightRoutes);
 
 /* ── Global error handler ───────────────────────────── */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
