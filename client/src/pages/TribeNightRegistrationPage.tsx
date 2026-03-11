@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ── Event details ── */
-const TRIBE_NIGHT_PRICE = 300;
+const TRIBE_NIGHT_PRICE = 299;
 
 /* ── Gender options ── */
 const GENDER_OPTIONS = [
