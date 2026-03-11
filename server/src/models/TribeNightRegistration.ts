@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+/* ── Scan history entry ── */
+interface ScanEntry {
+  scannedBy: mongoose.Types.ObjectId;
+  scannedAt: Date;
+  result: "allowed" | "denied";
+}
+
 /* ── Document interface ── */
 export interface ITribeNightRegistration extends Document {
   name: string;
@@ -11,6 +18,9 @@ export interface ITribeNightRegistration extends Document {
   paymentStatus: "pending" | "completed" | "failed";
   amount: number;
   qrCode?: string;
+  isVerified: boolean;
+  scanCount: number;
+  scanHistory: ScanEntry[];
   registeredAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +42,15 @@ const tribeNightRegistrationSchema = new Schema<ITribeNightRegistration>(
     },
     amount: { type: Number, required: true, default: 300 },
     qrCode: { type: String },
+    isVerified: { type: Boolean, default: false },
+    scanCount: { type: Number, default: 0 },
+    scanHistory: [
+      {
+        scannedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        scannedAt: { type: Date, default: Date.now },
+        result: { type: String, enum: ["allowed", "denied"] },
+      },
+    ],
     registeredAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

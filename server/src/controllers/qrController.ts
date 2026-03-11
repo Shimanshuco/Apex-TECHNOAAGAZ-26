@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
+import TribeNightRegistration from "../models/TribeNightRegistration";
 import { qrVerifySchema } from "../utils/validators";
 
 /**
@@ -7,6 +8,7 @@ import { qrVerifySchema } from "../utils/validators";
  * Volunteer or admin scans a QR → first scan per day = ALLOWED, subsequent same day = DENIED.
  * Each new day resets the allowance.
  * Tracks every scan attempt with who scanned and when.
+ * Supports both regular users and Tribe Night registrations.
  * Body: { userId: string }
  */
 export const verifyQR = async (req: Request, res: Response): Promise<void> => {
@@ -18,36 +20,62 @@ export const verifyQR = async (req: Request, res: Response): Promise<void> => {
     }
 
     const { userId } = parsed.data;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      res.status(404).json({ success: false, message: "User not found" });
-      return;
-    }
-
     const scannedById = req.userId!; // from authenticate middleware
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // Check if already scanned TODAY (allowed scan)
-    const todayAllowedScan = user.scanHistory.find(
-      (s) => s.result === "allowed" && new Date(s.scannedAt) >= todayStart && new Date(s.scannedAt) < todayEnd
-    );
+    // First, try to find in User collection
+    const user = await User.findById(userId);
+    
+    if (user) {
+      // Regular user found - handle verification
+      const todayAllowedScan = user.scanHistory.find(
+        (s) => s.result === "allowed" && new Date(s.scannedAt) >= todayStart && new Date(s.scannedAt) < todayEnd
+      );
 
-    if (todayAllowedScan) {
-      // Already verified today → ACCESS DENIED
+      if (todayAllowedScan) {
+        // Already verified today → ACCESS DENIED
+        user.scanCount += 1;
+        user.scanHistory.push({
+          scannedBy: scannedById as any,
+          scannedAt: now,
+          result: "denied",
+        });
+        await user.save();
+
+        res.status(403).json({
+          success: false,
+          message: "⛔ ACCESS DENIED — Already scanned today!",
+          data: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            phone: user.phone,
+            university: user.university,
+            collegeName: user.collegeName,
+            isVerified: true,
+            scanCount: user.scanCount,
+            firstScannedTodayAt: todayAllowedScan.scannedAt,
+          },
+        });
+        return;
+      }
+
+      // FIRST SCAN TODAY → ALLOW ENTRY
+      user.isVerified = true;
       user.scanCount += 1;
       user.scanHistory.push({
         scannedBy: scannedById as any,
         scannedAt: now,
-        result: "denied",
+        result: "allowed",
       });
       await user.save();
 
-      res.status(403).json({
-        success: false,
-        message: "⛔ ACCESS DENIED — Already scanned today!",
+      res.json({
+        success: true,
+        message: "✅ Entry Allowed — Verified successfully for today!",
         data: {
           id: user._id,
           name: user.name,
@@ -58,37 +86,92 @@ export const verifyQR = async (req: Request, res: Response): Promise<void> => {
           collegeName: user.collegeName,
           isVerified: true,
           scanCount: user.scanCount,
-          firstScannedTodayAt: todayAllowedScan.scannedAt,
         },
       });
       return;
     }
 
-    // FIRST SCAN TODAY → ALLOW ENTRY
-    user.isVerified = true;
-    user.scanCount += 1;
-    user.scanHistory.push({
-      scannedBy: scannedById as any,
-      scannedAt: now,
-      result: "allowed",
-    });
-    await user.save();
+    // If not found in User, check TribeNightRegistration
+    const tribeNightUser = await TribeNightRegistration.findById(userId);
+    
+    if (tribeNightUser) {
+      // Check if payment is verified
+      if (tribeNightUser.paymentStatus !== "completed") {
+        res.status(403).json({
+          success: false,
+          message: "⛔ ACCESS DENIED — Payment not verified!",
+          data: {
+            id: tribeNightUser._id,
+            name: tribeNightUser.name,
+            email: tribeNightUser.email,
+            role: "tribe-night-attendee",
+            phone: tribeNightUser.phone,
+            paymentStatus: tribeNightUser.paymentStatus,
+          },
+        });
+        return;
+      }
 
-    res.json({
-      success: true,
-      message: "✅ Entry Allowed — Verified successfully for today!",
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        university: user.university,
-        collegeName: user.collegeName,
-        isVerified: true,
-        scanCount: user.scanCount,
-      },
-    });
+      // Check for today's allowed scan
+      const todayAllowedScan = tribeNightUser.scanHistory.find(
+        (s) => s.result === "allowed" && new Date(s.scannedAt) >= todayStart && new Date(s.scannedAt) < todayEnd
+      );
+
+      if (todayAllowedScan) {
+        // Already verified today → ACCESS DENIED
+        tribeNightUser.scanCount += 1;
+        tribeNightUser.scanHistory.push({
+          scannedBy: scannedById as any,
+          scannedAt: now,
+          result: "denied",
+        });
+        await tribeNightUser.save();
+
+        res.status(403).json({
+          success: false,
+          message: "⛔ ACCESS DENIED — Already scanned today! (Tribe Night)",
+          data: {
+            id: tribeNightUser._id,
+            name: tribeNightUser.name,
+            email: tribeNightUser.email,
+            role: "tribe-night-attendee",
+            phone: tribeNightUser.phone,
+            isVerified: true,
+            scanCount: tribeNightUser.scanCount,
+            firstScannedTodayAt: todayAllowedScan.scannedAt,
+          },
+        });
+        return;
+      }
+
+      // FIRST SCAN TODAY → ALLOW ENTRY
+      tribeNightUser.isVerified = true;
+      tribeNightUser.scanCount += 1;
+      tribeNightUser.scanHistory.push({
+        scannedBy: scannedById as any,
+        scannedAt: now,
+        result: "allowed",
+      });
+      await tribeNightUser.save();
+
+      res.json({
+        success: true,
+        message: "✅ Entry Allowed — Tribe Night verified for today!",
+        data: {
+          id: tribeNightUser._id,
+          name: tribeNightUser.name,
+          email: tribeNightUser.email,
+          role: "tribe-night-attendee",
+          phone: tribeNightUser.phone,
+          isVerified: true,
+          scanCount: tribeNightUser.scanCount,
+        },
+      });
+      return;
+    }
+
+    // Not found in either collection
+    res.status(404).json({ success: false, message: "User not found" });
   } catch (err) {
     console.error("VerifyQR error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
