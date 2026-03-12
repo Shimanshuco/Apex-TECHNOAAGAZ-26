@@ -152,7 +152,6 @@ const QRVerifyPage: React.FC = () => {
           qrbox: { width: 220, height: 220 }, // Slightly smaller for faster processing
           aspectRatio: 1,
           disableFlip: false,
-          formatsToSupport: [0], // QR_CODE only = faster detection
         },
         onScanSuccess,
         () => {}, // ignore scan failures (no QR in frame)

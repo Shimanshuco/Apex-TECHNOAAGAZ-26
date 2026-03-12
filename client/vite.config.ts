@@ -17,14 +17,8 @@ export default defineConfig({
         },
       },
     },
-    // Minification settings
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.log in production
-        drop_debugger: true,
-      },
-    },
+    // Use esbuild for faster minification
+    minify: 'esbuild',
     // Target modern browsers for smaller bundle
     target: 'es2020',
     // Enable source maps for debugging (can disable in prod)
