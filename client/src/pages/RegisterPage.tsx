@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Card, Button } from "../components";
@@ -7,12 +7,13 @@ import { Select } from "../components/Select";
 import AnimatedBackground from "../components/AnimatedBackground";
 import AuthNavbar from "../components/AuthNavbar";
 
+// Static options moved outside component to prevent re-creation
 const GENDER_OPTIONS = [
   { value: "", label: "Select Gender" },
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
   { value: "other", label: "Other" },
-];
+] as const;
 
 const BLOOD_GROUP_OPTIONS = [
   { value: "", label: "Select Blood Group" },
@@ -24,13 +25,13 @@ const BLOOD_GROUP_OPTIONS = [
   { value: "AB-", label: "AB-" },
   { value: "O+", label: "O+" },
   { value: "O-", label: "O-" },
-];
+] as const;
 
 const UNIVERSITY_OPTIONS = [
   { value: "", label: "Select University" },
   { value: "apex_university", label: "Apex University" },
   { value: "other", label: "Other" },
-];
+] as const;
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -51,10 +52,22 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const update = (field: string, value: string) =>
-    setForm((p) => ({ ...p, [field]: value }));
+  // Memoized update function to prevent re-creation on each render
+  const update = useCallback((field: string, value: string) =>
+    setForm((p) => ({ ...p, [field]: value })), []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Memoized validation to avoid recalculating
+  const validationError = useMemo(() => {
+    if (form.password && form.password.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+    if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
+      return "Passwords do not match";
+    }
+    return null;
+  }, [form.password, form.confirmPassword]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -103,7 +116,7 @@ const RegisterPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [form, register, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 pt-16 pb-12 relative">

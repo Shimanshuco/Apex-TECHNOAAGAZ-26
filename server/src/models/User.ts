@@ -84,5 +84,8 @@ const userSchema = new Schema<IUser>(
 /* ── Index for fast look-ups ── */
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ isVerified: 1, role: 1 }); // Fast lookup for verified participants
+userSchema.index({ "scanHistory.scannedAt": -1 }); // Fast lookup for recent scans
+userSchema.index({ createdAt: -1 }); // Fast lookup for recent registrations
 
 export const User = mongoose.model<IUser>("User", userSchema);

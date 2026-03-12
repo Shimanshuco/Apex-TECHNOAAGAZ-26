@@ -25,8 +25,10 @@ export const verifyQR = async (req: Request, res: Response): Promise<void> => {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // First, try to find in User collection
-    const user = await User.findById(userId);
+    // First, try to find in User collection - use select for only needed fields
+    const user = await User.findById(userId).select(
+      'name email role phone university collegeName isVerified scanCount scanHistory'
+    );
     
     if (user) {
       // Regular user found - handle verification

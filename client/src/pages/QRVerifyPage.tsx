@@ -101,12 +101,12 @@ const QRVerifyPage: React.FC = () => {
         }
       } finally {
         setLoading(false);
-        // Cooldown to prevent rapid re-scans
+        // Reduced cooldown for faster re-scans
         setCooldown(true);
         setTimeout(() => {
           setCooldown(false);
           processedRef.current = false;
-        }, 3000);
+        }, 1500); // Reduced from 3000ms
       }
     },
     [token, loading, cooldown],
@@ -136,16 +136,23 @@ const QRVerifyPage: React.FC = () => {
     setResult(null);
     processedRef.current = false;
 
-    const scanner = new Html5Qrcode("qr-reader");
+    const scanner = new Html5Qrcode("qr-reader", {
+      verbose: false,
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true, // Use native BarcodeDetector API for faster scanning
+      },
+    });
     scannerRef.current = scanner;
 
     try {
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+          fps: 20, // Increased from 10 for faster scanning
+          qrbox: { width: 220, height: 220 }, // Slightly smaller for faster processing
           aspectRatio: 1,
+          disableFlip: false,
+          formatsToSupport: [0], // QR_CODE only = faster detection
         },
         onScanSuccess,
         () => {}, // ignore scan failures (no QR in frame)

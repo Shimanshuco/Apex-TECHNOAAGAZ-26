@@ -1,30 +1,44 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import AdminLoginPage from './pages/AdminLoginPage';
-import VolunteerSignupPage from './pages/VolunteerSignupPage';
-import EventsPage from './pages/EventsPage';
-import EventDetailPage from './pages/EventDetailPage';
-import EventRegistrationPage from './pages/EventRegistrationPage';
-import CreateEventPage from './pages/CreateEventPage';
-import ProfilePage from './pages/ProfilePage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import QRVerifyPage from './pages/QRVerifyPage';
-import ArtistsPage from './pages/ArtistsPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import PreviousTechnoPage from './pages/PreviousTechnoPage';
-import WalkInRegisterPage from './pages/WalkInRegisterPage';
-import TribeNightRegistrationPage from './pages/TribeNightRegistrationPage';
-import TribeNightStatusPage from './pages/TribeNightStatusPage';
 import PageLayout from './components/PageLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+
+// Lazy load non-critical pages for faster initial load
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
+const VolunteerSignupPage = lazy(() => import('./pages/VolunteerSignupPage'));
+const EventsPage = lazy(() => import('./pages/EventsPage'));
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
+const EventRegistrationPage = lazy(() => import('./pages/EventRegistrationPage'));
+const CreateEventPage = lazy(() => import('./pages/CreateEventPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
+const QRVerifyPage = lazy(() => import('./pages/QRVerifyPage'));
+const ArtistsPage = lazy(() => import('./pages/ArtistsPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const PreviousTechnoPage = lazy(() => import('./pages/PreviousTechnoPage'));
+const WalkInRegisterPage = lazy(() => import('./pages/WalkInRegisterPage'));
+const TribeNightRegistrationPage = lazy(() => import('./pages/TribeNightRegistrationPage'));
+const TribeNightStatusPage = lazy(() => import('./pages/TribeNightStatusPage'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-950">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-4 border-gold/30 border-t-gold rounded-full animate-spin" />
+      <p className="text-gray-400 text-sm">Loading...</p>
+    </div>
+  </div>
+);
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
         {/* Landing */}
         <Route path="/" element={<HomePage />} />
 
@@ -57,6 +71,7 @@ function App() {
         {/* Protected — volunteer / admin */}
         <Route path="/qr/verify" element={<ProtectedRoute roles={['volunteer', 'admin']}><PageLayout><QRVerifyPage /></PageLayout></ProtectedRoute>} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
